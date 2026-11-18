@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biostage v0.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0e12;--panel:#14171e;--panel2:#191d26;--line:#252a36;--text:#d8dce5;--dim:#8a92a3;--acc:#58C4DD;--key:#F7D96F;--red:#FC6255}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.4 Inter,system-ui,sans-serif;overflow:hidden}
+body{display:grid;grid-template-rows:46px minmax(0,1fr) 250px;height:100vh}
+header{display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line);min-width:0;overflow-x:auto;white-space:nowrap}
+.brand{font-family:"STIX Two Text",serif;font-size:21px;margin-right:6px}
+.brand b{color:var(--acc);font-weight:600}
+.ver{font-size:11px;color:var(--dim);margin-left:2px;margin-right:6px}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font:inherit;cursor:pointer}
+button:hover{border-color:#3a4152;background:#1f2430}
+button.pri{background:var(--acc);color:#0b1215;border-color:var(--acc);font-weight:600}
+button.add{background:#1b2230;border-color:#2c3648}
+input,select{background:#0f1218;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 7px;font:inherit}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
+.grow{flex:1}
+main{display:grid;grid-template-columns:200px minmax(0,1fr) 290px;min-height:0}
+#left,#right{background:var(--panel);overflow:auto}
+#left{border-right:1px solid var(--line)}
+#right{border-left:1px solid var(--line)}
+.ph{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);padding:12px 12px 6px}
+.item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-left:2px solid transparent}
+.item:hover{background:#1a1e27}
+.item.sel{background:#1d2330;border-left-color:var(--acc)}
+.item .t{color:var(--dim);font-size:11px;margin-left:auto}
+.chip{width:10px;height:10px;border-radius:3px;flex:none}
+#stage{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;background:radial-gradient(circle at 50% 40%,#151922,#0a0c10)}
+#frame{position:relative;box-shadow:0 0 0 1px #2a3040,0 20px 60px rgba(0,0,0,.5)}
+#frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#ov{cursor:grab;touch-action:none}
+#ov.drag{cursor:grabbing}
+#ov.pick{cursor:crosshair}
+#err{position:absolute;left:12px;right:12px;top:12px;background:#3a1418;border:1px solid #FC6255;color:#ffd7d3;padding:10px 12px;border-radius:8px;display:none;z-index:9;white-space:pre-wrap;font-size:12px;user-select:text}
+#diag{position:absolute;right:12px;bottom:8px;color:#5b6375;font-size:11px;pointer-events:none}
+#hint{position:absolute;left:12px;bottom:8px;color:var(--dim);font-size:12px;pointer-events:none}
+#pickbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--key);color:#1a1600;padding:6px 8px 6px 14px;border-radius:999px;font-weight:600;display:none;gap:10px;align-items:center;z-index:5}
+#pickbar button{padding:2px 8px;background:#1a1600;color:var(--key);border:none}
+#tip{position:absolute;pointer-events:none;background:rgba(10,12,16,.92);border:1px solid var(--line);padding:3px 8px;border-radius:6px;font-size:12px;display:none;white-space:nowrap;z-index:4}
+#drop{position:absolute;inset:8px;border:2px dashed var(--acc);border-radius:10px;background:rgba(88,196,221,.08);display:none;align-items:center;justify-content:center;font-size:16px;color:var(--acc);pointer-events:none;z-index:6}
+footer{background:var(--panel);border-top:1px solid var(--line);display:grid;grid-template-rows:42px minmax(0,1fr);min-height:0}
+#tlbar{display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+#play{width:34px;font-size:14px;padding:4px 0}
+#time{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;min-width:120px;color:var(--dim)}
+#time b{color:var(--text);font-weight:500}
+#tlwrap{position:relative;min-height:0}
+#tlc{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.sec{padding:2px 12px 12px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:76px 1fr 60px 20px;gap:6px;align-items:center;margin:5px 0}
+.row label{color:var(--dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row input[type=range]{width:100%;accent-color:var(--acc);margin:0}
+.row input[type=number]{width:100%;padding:3px 4px}
+.kb{background:none;border:none;padding:0;font-size:15px;line-height:1;color:#4c5568;cursor:pointer}
+.kb:hover{background:none;color:#8a92a3}
+.kb.has{color:#a8913f}
+.kb.on{color:var(--key);text-shadow:0 0 6px rgba(247,217,111,.6)}
+.field{margin:8px 0}
+.field>label{display:block;color:var(--dim);font-size:12px;margin-bottom:4px}
+.field input[type=text],.field select{width:100%}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw span{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+.sw span.on{border-color:#fff}
+.muted{color:var(--dim);font-size:12px}
+.flex{display:flex;gap:6px;align-items:center}
+#toast{position:fixed;left:50%;bottom:270px;transform:translateX(-50%);background:#1e2430;border:1px solid #33405a;padding:10px 14px;border-radius:8px;max-width:560px;display:none;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#crop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:30}
+#crop .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+button:disabled{opacity:.45;cursor:default}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:30}
+#modal .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;max-width:80vw}
+#modal video{max-width:70vw;max-height:60vh;display:block;margin-bottom:10px;background:#000}
+#rec{display:none;color:var(--red);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>Bio</b>stage</div><span class="ver">v0.4</span>
+  <select id="bDemo" title="Load a demo scene"><option value="">Demos…</option><option value="bundle">Helix bundle tour</option><option value="barrier">Barrier breakdown</option></select>
+  <button id="bOpen" title="Open a structure (.pdb/.cif), a paper (.pdf) or a figure image">Open file…</button>
+  <input id="fileIn" type="file" accept=".pdb,.ent,.cif,.mmcif,.txt,.pdf,.png,.jpg,.jpeg,.webp" hidden>
+  <input id="pdbId" placeholder="PDB ID, e.g. 1GFL" size="14" maxlength="8">
+  <button id="bFetch">Fetch</button>
+  <span class="sep"></span>
+  <span class="muted">Frame</span>
+  <select id="aspect"><option>16:9</option><option>9:16</option><option>1:1</option><option>4:3</option><option>4:5</option></select>
+  <span class="grow"></span>
+  <span id="rec">● REC</span>
+  <button id="bExport" class="pri">Export video</button>
+</header>
+<main>
+  <aside id="left"><div class="ph">Scene</div><div id="outliner"></div></aside>
+  <section id="stage">
+    <div id="frame"><canvas id="gl"></canvas><canvas id="ov"></canvas></div>
+    <div id="pickbar"><span id="pickText">Click a residue to pin</span><button id="pickCancel">Cancel</button></div>
+    <div id="tip"></div>
+    <div id="err"></div><div id="diag"></div>
+    <div id="hint">Drag to orbit · Shift-drag to pan · scroll to zoom · Space to play · drop a .pdb, .cif, .pdf or image anywhere</div>
+    <div id="drop">Drop a structure (.pdb/.cif), a paper (.pdf) or a figure image</div>
+  </section>
+  <aside id="right"><div id="inspector"></div></aside>
+</main>
+<footer>
+  <div id="tlbar">
+    <button id="play" title="Play / pause (Space)">▶</button>
+    <span id="time"></span>
+    <span class="sep"></span>
+    <button class="add" id="aLabel">+ Label</button>
+    <button class="add" id="aArrow">+ Arrow</button>
+    <button class="add" id="aTitle">+ Title</button>
+    <button class="add" id="aEq">+ Equation</button>
+    <span class="sep"></span>
+    <button class="add" id="aMem">+ Membrane</button>
+    <button class="add" id="aJn">+ Junction</button>
+    <button class="add" id="aMol">+ Molecule</button>
+    <span class="grow"></span>
+    <span class="muted">◆ keys: drag to move · Shift = no snap · Delete removes</span>
+    <span class="sep"></span>
+    <span class="muted">Length</span><input id="dur" type="number" min="1" max="600" step="1" style="width:64px"><span class="muted">s</span>
+  </div>
+  <div id="tlwrap"><canvas id="tlc"></canvas></div>
+</footer>
+<div id="toast"></div>
+<div id="crop" class="dlg"><div class="box"><div class="flex" style="margin-bottom:10px"><b>Cut out a figure</b><span class="muted">drag a box around it</span><span class="grow"></span><select id="cropPage"></select></div><canvas id="cropCv" style="display:block;cursor:crosshair;background:#fff;touch-action:none"></canvas><div class="flex" style="margin-top:10px"><button class="pri" id="cropOk" disabled>Cut out &amp; animate</button><button id="cropCancel">Cancel</button></div></div></div>
+<div id="modal"><div class="box"><video id="vid" controls loop></video><div class="flex"><button class="pri" id="mSave">Save video</button><button id="mClose">Close</button><span class="muted" id="mNote"></span></div></div></div>
+
+<script>
+function startApp(THREE_SRC) {
+'use strict';
+/* ============================================================
+   Biostage v0.1 — first playable slice
+   structure in → orbit → Manim-style labels → keyframes → play
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = x => x * x * (3 - 2 * x);
+const DEG = Math.PI / 180;
+
+const MANIM = { White:'#FFFFFF', Blue:'#58C4DD', Teal:'#5CD0B3', Green:'#83C167', Yellow:'#F7D96F', Gold:'#F0AC5F', Red:'#FC6255', Maroon:'#C55F73', Purple:'#9A72AC', Grey:'#BBBBBB' };
+const CHAIN_COLS = ['#58C4DD','#83C167','#F0AC5F','#9A72AC','#FC6255','#5CD0B3','#F7D96F','#C55F73'];
+const TYPE_COL = { camera:'#8a92a3', protein:'#58C4DD', membrane:'#F0AC5F', paper:'#e8e8e8', figure:'#5CD0B3', junction:'#FC6255', equation:'#F0AC5F', label:'#F7D96F', arrow:'#FC6255', title:'#83C167' };
+const TYPE_NAME = { camera:'Camera', protein:'Structure', membrane:'Membrane', paper:'Paper stack', figure:'Figure cut-out', junction:'Tight junction', equation:'Equation', label:'Label', arrow:'Arrow', title:'Title card' };
+const IS3D = { protein:true, membrane:true, paper:true, figure:true, junction:true };
+const MEM_SIZES = { Small:70, Medium:110, Large:160 };
+const TAIL_COLS = { Cream:'#ECE6CF', Grey:'#B8BEC8', Gold:'#F0AC5F', Teal:'#5CD0B3' };
+const SS_COL = { H:'#FC6255', E:'#F7D96F', C:'#C9CFD8', N:'#83C167' };
+const ELEM = { H:'#F2F2F2', C:'#9aa3b0', N:'#5b8def', O:'#FC6255', S:'#F7D96F', P:'#F0AC5F', FE:'#E0703A', MG:'#83C167', ZN:'#8E9BD8', CA:'#83C167', CL:'#5CD0B3', NA:'#9A72AC', K:'#9A72AC', SE:'#F0AC5F' };
+const VDW = { H:1.1, C:1.7, N:1.55, O:1.52, S:1.8, P:1.8, FE:1.4, ZN:1.39, MG:1.73, CA:1.9, CL:1.75, NA:2.27, K:2.75, SE:1.9 };
+const COV = { H:.31, C:.76, N:.71, O:.66, S:1.05, P:1.07, SE:1.2, BR:1.2, CL:1.02, F:.57, I:1.39 };
+const METALS = new Set(['FE','ZN','MG','CA','NA','K','MN','CU','CO','NI','CD','HG']);
+const WATER = new Set(['HOH','WAT','DOD','H2O']);
+const DIMS = { H:[1.5,0.28], E:[1.25,0.32], C:[0.32,0.32], N:[0.55,0.55] };
+
+const R = { min:0, max:1, step:0.01 };
+const SCHEMA = {
+  camera: [
+    { k:'orbit', l:'Orbit', min:-360, max:360, step:1, def:25, u:'°' },
+    { k:'tilt', l:'Tilt', min:-85, max:85, step:1, def:12, u:'°' },
+    { k:'zoom', l:'Distance', min:0.2, max:3, step:0.01, def:1 },
+    { k:'fov', l:'Lens (FOV)', min:12, max:75, step:1, def:35, u:'°' },
+    { k:'panX', l:'Look at X', min:-400, max:400, step:0.5, def:0 },
+    { k:'panY', l:'Look at Y', min:-400, max:400, step:0.5, def:0 },
+    { k:'panZ', l:'Look at Z', min:-400, max:400, step:0.5, def:0 } ],
+  membrane: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'bend', l:'Curvature', ...R, def:0 },
+    { k:'thermal', l:'Jiggle', ...R, def:0.5 },
+    { k:'pore', l:'Pore', min:0, max:60, step:0.5, def:0, u:'Å' },
+    { k:'tilt', l:'Tilt', min:-90, max:90, step:1, def:0, u:'°' },
+    { k:'spin', l:'Spin', min:-360, max:360, step:1, def:0, u:'°' },
+    { k:'x', l:'Move X', min:-400, max:400, step:0.5, def:0 },
+    { k:'y', l:'Move Y', min:-400, max:400, step:0.5, def:0 } ],
+  figure: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'lift', l:'Lift off', ...R, def:0 },
+    { k:'size', l:'Landed size', min:5, max:300, step:1, def:60 },
+    { k:'x', l:'Land X', min:-300, max:300, step:0.5, def:0 },
+    { k:'y', l:'Land Y', min:-300, max:300, step:0.5, def:0 } ],
+  paper: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'spread', l:'Spread', ...R, def:0 },
+    { k:'fan', l:'Fan angle', min:5, max:140, step:1, def:50, u:'°' },
+    { k:'focus', l:'Focus page', min:1, max:12, step:0.01, def:1 },
+    { k:'lift', l:'Lift page', ...R, def:0 },
+    { k:'size', l:'Page size', min:10, max:250, step:1, def:50 },
+    { k:'spin', l:'Spin', min:-360, max:360, step:1, def:0, u:'°' },
+    { k:'x', l:'Move X', min:-400, max:400, step:0.5, def:0 },
+    { k:'y', l:'Move Y', min:-400, max:400, step:0.5, def:0 } ],
+  protein: [
+    { k:'cartoon', l:'Cartoon', ...R, def:1 },
+    { k:'atoms', l:'Atoms', ...R, def:0 },
+    { k:'atomSize', l:'Atom size', min:0.15, max:1, step:0.01, def:0.28 },
+    { k:'sticks', l:'Sticks', ...R, def:1 },
+    { k:'ligands', l:'Ligands', ...R, def:1 },
+    { k:'spin', l:'Spin', min:-360, max:360, step:1, def:0, u:'°' },
+    { k:'x', l:'Move X', min:-400, max:400, step:0.5, def:0 },
+    { k:'y', l:'Move Y', min:-400, max:400, step:0.5, def:0 },
+    { k:'scale', l:'Scale', min:0.1, max:12, step:0.05, def:1 } ],
+  junction: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'gap', l:'Gap', min:0, max:40, step:0.5, def:0, u:'Å' },
+    { k:'strands', l:'Strands', ...R, def:1 },
+    { k:'flow', l:'Leak', ...R, def:0 },
+    { k:'jiggle', l:'Jiggle', ...R, def:0.4 },
+    { k:'tilt', l:'Tilt', min:-90, max:90, step:1, def:0, u:'°' },
+    { k:'spin', l:'Spin', min:-360, max:360, step:1, def:0, u:'°' },
+    { k:'x', l:'Move X', min:-400, max:400, step:0.5, def:0 },
+    { k:'y', l:'Move Y', min:-400, max:400, step:0.5, def:0 } ],
+  equation: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'write', l:'Write', ...R, def:1 },
+    { k:'x', l:'Across', min:0, max:1, step:0.005, def:0.5 },
+    { k:'y', l:'Down', min:0, max:1, step:0.005, def:0.18 },
+    { k:'size', l:'Size', min:12, max:160, step:1, def:56 } ],
+  label: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'write', l:'Write', ...R, def:1 },
+    { k:'dx', l:'Offset X', min:-0.8, max:0.8, step:0.005, def:0.14 },
+    { k:'dy', l:'Offset Y', min:-0.6, max:0.6, step:0.005, def:-0.1 },
+    { k:'size', l:'Size', min:12, max:120, step:1, def:42 } ],
+  arrow: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'draw', l:'Draw', ...R, def:1 },
+    { k:'angle', l:'Angle', min:-180, max:180, step:1, def:135, u:'°' },
+    { k:'length', l:'Length', min:0.03, max:0.6, step:0.005, def:0.16 },
+    { k:'width', l:'Width', min:1, max:20, step:0.5, def:6 } ],
+  title: [
+    { k:'opacity', l:'Opacity', ...R, def:1 },
+    { k:'write', l:'Write', ...R, def:1 },
+    { k:'y', l:'Height', min:0.04, max:0.96, step:0.005, def:0.13 },
+    { k:'size', l:'Size', min:16, max:160, step:1, def:68 } ],
+};
+
+/* ---------------- state ---------------- */
+const S = { duration:12, time:0, playing:false, aspect:'16:9', bg:'#101216', objects:[], sel:null, selKeys:[], pick:null, demo:false };
+let nextId = 1;
+const STRUCTS = new Map();   // protein obj id -> parsed structure
+const MESH = new Map();      // protein obj id -> three.js objects
+
+function mkObj(type, name, props, statics) {
+  const o = { id:'o' + (nextId++), type, name: name || TYPE_NAME[type], props:{}, tracks:{}, statics: statics || {}, expanded:true };
+  for (const p of SCHEMA[type]) o.props[p.k] = p.def;
+  Object.assign(o.props, props || {});
+  return o;
+}
+const getObj = id => S.objects.find(o => o.id === id);
+function propDef(type, k) { const p = SCHEMA[type] && SCHEMA[type].find(q => q.k === k); return p ? p.def : 0; }
+const cameraObj = () => S.objects.find(o => o.type === 'camera');
+const selObj = () => getObj(S.sel);
+
+function val(o, k, t = S.time) {
+  const tr = o.tracks[k];
+  if (!tr || !tr.length) { const v = o.props[k]; return typeof v === 'number' && isFinite(v) ? v : propDef(o.type, k); }
+  if (t <= tr[0].t) return tr[0].v;
+  const L = tr[tr.length - 1];
+  if (t >= L.t) return L.v;
+  for (let i = 0; i < tr.length - 1; i++) {
+    if (t < tr[i + 1].t) {
+      const a = tr[i], b = tr[i + 1];
+      const x = smooth((t - a.t) / (b.t - a.t || 1));
+      return a.v + (b.v - a.v) * x;
+    }
+  }
+  return L.v;
+}
+function keyAt(o, k, t = S.time) {
+  const tr = o.tracks[k]; if (!tr) return -1;
+  return tr.findIndex(q => Math.abs(q.t - t) < 0.021);
+}
+const sortTrack = tr => tr.sort((a, b) => a.t - b.t);
+function setProp(o, k, v) {
+  const tr = o.tracks[k];
+  if (tr && tr.length) {
+    const i = keyAt(o, k);
+    if (i >= 0) tr[i].v = v; else { tr.push({ t: S.time, v }); sortTrack(tr); }
+  } else o.props[k] = v;
+  S.demo = false;
+  changed(false);
+}
+function toggleKey(o, k) {
+  const tr = o.tracks[k] || (o.tracks[k] = []);
+  const i = keyAt(o, k);
+  if (i >= 0) {
+    const v = tr[i].v; tr.splice(i, 1);
+    if (!tr.length) { delete o.tracks[k]; o.props[k] = v; }
+  } else { tr.push({ t: Math.round(S.time * 30) / 30, v: val(o, k) }); sortTrack(tr); }
+  S.demo = false;
+  changed(true);
+}
+function keys(o, k, list) { o.tracks[k] = list.map(([t, v]) => ({ t, v })); }
+
+let saveTimer = null;
+function changed(rebuildInspector) {
+  if (rebuildInspector) renderInspector(); else syncInspector();
+  renderOutliner();
+  drawTimeline();
+  clearTimeout(saveTimer); saveTimer = setTimeout(save, 600);
+}
+function select(id) {
+  S.sel = id;
+  renderOutliner(); renderInspector(); drawTimeline();
+}
+function setTime(t) {
+  S.time = clamp(t, 0, S.duration);
+  syncInspector(); drawTimeline(); updateTime();
+}
+
+/* ---------------- three.js ---------------- */
+const glCanvas = $('#gl'), ov = $('#ov'), octx = ov.getContext('2d');
+let renderer, scene, camera, hemi, dirLight, FW = 640, FH = 360, DPR = 1;
+function initThree() {
+  try { renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true }); }
+  catch (e) { window.bsFatal('WebGL could not start in this browser view, so the 3D viewport can’t draw. (' + (e && e.message || e) + ')\nTry opening the artifact in its own browser tab, or check that hardware acceleration is turned on.'); throw e; }
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(35, 16 / 9, 0.5, 2000);
+  scene.add(camera);
+  hemi = new THREE.HemisphereLight(0xffffff, 0x2a2e38, 0.75); scene.add(hemi);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+  dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(3, 4, 5); camera.add(dirLight);
+  scene.fog = new THREE.Fog(0x101216, 50, 200);
+}
+function layout() {
+  const st = $('#stage').getBoundingClientRect();
+  const [aw, ah] = S.aspect.split(':').map(Number); const a = aw / ah;
+  const sw = st.width - 40, sh = st.height - 56;
+  let fw = Math.min(sw, sh * a), fh = fw / a;
+  fw = Math.max(80, Math.floor(fw)); fh = Math.max(45, Math.floor(fh));
+  FW = fw; FH = fh; DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const fr = $('#frame'); fr.style.width = fw + 'px'; fr.style.height = fh + 'px';
+  renderer.setPixelRatio(DPR); renderer.setSize(fw, fh, false);
+  ov.width = Math.round(fw * DPR); ov.height = Math.round(fh * DPR);
+  camera.aspect = a; camera.updateProjectionMatrix();
+  sizeTimeline();
+}
+
+/* ---------------- parsing ---------------- */
+function parsePDB(text) {
+  const atoms = [], ranges = [];
+  const lines = text.split(/\r?\n/);
+  for (const ln of lines) {
+    const rec = ln.slice(0, 6);
+    if (rec === 'ENDMDL') break;
+    if (rec === 'ATOM  ' || rec === 'HETATM') {
+      const alt = ln[16] || ' ';
+      if (alt !== ' ' && alt !== 'A' && alt !== '1') continue;
+      const name = ln.slice(12, 16).trim();
+      let el = ln.slice(76, 78).trim().toUpperCase();
+      if (!el) el = name.replace(/[^A-Za-z]/g, '').slice(0, 1).toUpperCase();
+      atoms.push({ name, resName: ln.slice(17, 20).trim(), chain: (ln[21] || 'A').trim() || 'A', resSeq: parseInt(ln.slice(22, 26)), ic: (ln[26] || '').trim(),
+        x: parseFloat(ln.slice(30, 38)), y: parseFloat(ln.slice(38, 46)), z: parseFloat(ln.slice(46, 54)), el, het: rec === 'HETATM' });
+    } else if (rec === 'HELIX ') {
+      ranges.push({ type:'H', chain: ln[19], start: parseInt(ln.slice(21, 25)), end: parseInt(ln.slice(33, 37)) });
+    } else if (rec === 'SHEET ') {
+      ranges.push({ type:'E', chain: ln[21], start: parseInt(ln.slice(22, 26)), end: parseInt(ln.slice(33, 37)) });
+    }
+  }
+  return { atoms: atoms.filter(a => isFinite(a.x)), ranges };
+}
+function cifLoops(text) {
+  const lines = text.split(/\r?\n/); const loops = {}; let i = 0;
+  const tok = /'(?:[^']|'(?=\S))*'|"(?:[^"])*"|\S+/g;
+  while (i < lines.length) {
+    if (lines[i].trim() === 'loop_') {
+      i++; const heads = [];
+      while (i < lines.length && lines[i].trim().startsWith('_')) { heads.push(lines[i].trim().split(/\s+/)[0]); i++; }
+      if (!heads.length) continue;
+      const cat = heads[0].split('.')[0];
+      const fields = heads.map(h => h.split('.')[1]);
+      const rows = []; let buf = [];
+      while (i < lines.length) {
+        const t = lines[i].trim();
+        if (t === 'loop_' || t.startsWith('_') || t.startsWith('data_') || t === '#') break;
+        if (t.startsWith(';')) { i++; continue; }
+        const parts = t.match(tok) || [];
+        for (const p of parts) buf.push(p.replace(/^['"]|['"]$/g, ''));
+        while (buf.length >= fields.length) rows.push(buf.splice(0, fields.length));
+        i++;
+      }
+      loops[cat] = { fields, rows };
+    } else i++;
+  }
+  return loops;
+}
+function parseCIF(text) {
+  const L = cifLoops(text); const atoms = [], ranges = [];
+  const A = L['_atom_site'];
+  if (A) {
+    const f = n => A.fields.indexOf(n);
+    const iG = f('group_PDB'), iEl = f('type_symbol'), iName = f('auth_atom_id') >= 0 ? f('auth_atom_id') : f('label_atom_id'),
+      iRes = f('auth_comp_id') >= 0 ? f('auth_comp_id') : f('label_comp_id'), iCh = f('auth_asym_id') >= 0 ? f('auth_asym_id') : f('label_asym_id'),
+      iSeq = f('auth_seq_id') >= 0 ? f('auth_seq_id') : f('label_seq_id'), iX = f('Cartn_x'), iY = f('Cartn_y'), iZ = f('Cartn_z'),
+      iAlt = f('label_alt_id'), iMod = f('pdbx_PDB_model_num'), iIc = f('pdbx_PDB_ins_code');
+    let model = null;
+    for (const r of A.rows) {
+      if (iMod >= 0) { if (model === null) model = r[iMod]; else if (r[iMod] !== model) break; }
+      if (iAlt >= 0 && r[iAlt] !== '.' && r[iAlt] !== '?' && r[iAlt] !== 'A') continue;
+      atoms.push({ name: r[iName], resName: r[iRes], chain: r[iCh], resSeq: parseInt(r[iSeq]), ic: iIc >= 0 && r[iIc] !== '?' ? r[iIc] : '',
+        x: +r[iX], y: +r[iY], z: +r[iZ], el: (r[iEl] || 'C').toUpperCase(), het: r[iG] === 'HETATM' });
+    }
+  }
+  for (const [cat, type] of [['_struct_conf', 'H'], ['_struct_sheet_range', 'E']]) {
+    const C = L[cat]; if (!C) continue;
+    const f = n => C.fields.indexOf(n);
+    const iC = f('beg_auth_asym_id'), iS = f('beg_auth_seq_id'), iE = f('end_auth_seq_id'), iT = f('conf_type_id');
+    if (iC < 0 || iS < 0 || iE < 0) continue;
+    for (const r of C.rows) {
+      if (type === 'H' && iT >= 0 && !/^HELX/.test(r[iT])) continue;
+      ranges.push({ type, chain: r[iC], start: parseInt(r[iS]), end: parseInt(r[iE]) });
+    }
+  }
+  return { atoms: atoms.filter(a => isFinite(a.x) && !isNaN(a.resSeq)), ranges };
+}
+
+/* ---------------- structure model ---------------- */
+function buildStruct(raw, name) {
+  const atoms = raw.atoms.filter(a => raw.keepH || (a.el !== 'H' && a.el !== 'D'));
+  if (!atoms.length) return null;
+  const res = [], resIndex = {}; let prevKey = null, cur = null;
+  atoms.forEach((a, i) => {
+    const key = a.chain + '|' + a.resSeq + '|' + (a.ic || '');
+    if (key !== prevKey) {
+      cur = { resName: a.resName, chain: a.chain, resSeq: a.resSeq, atoms: [], het: a.het, water: WATER.has(a.resName), ca: -1, p: -1 };
+      res.push(cur);
+      const rk = a.chain + '|' + a.resSeq; if (resIndex[rk] === undefined) resIndex[rk] = res.length - 1;
+      prevKey = key;
+    }
+    a.ri = res.length - 1; a.water = cur.water; cur.atoms.push(i);
+    if (a.name === 'CA' && a.el === 'C') cur.ca = i;
+    if (a.name === 'P') cur.p = i;
+  });
+  let cx = 0, cy = 0, cz = 0, n = 0;
+  for (const a of atoms) if (!a.water) { cx += a.x; cy += a.y; cz += a.z; n++; }
+  if (!n) { for (const a of atoms) { cx += a.x; cy += a.y; cz += a.z; } n = atoms.length; }
+  cx /= n; cy /= n; cz /= n;
+  let rad = 0;
+  for (const a of atoms) { a.x -= cx; a.y -= cy; a.z -= cz; if (!a.water) rad = Math.max(rad, Math.hypot(a.x, a.y, a.z)); }
+  const chains = [];
+  for (const r of res) {
+    if (r.water) r.kind = 'water';
+    else if (r.ca >= 0 && (!r.het || r.resName === 'MSE')) r.kind = 'prot';
+    else if (r.p >= 0 && !r.het) r.kind = 'nuc';
+    else r.kind = 'lig';
+    const t = r.kind === 'prot' ? r.ca : r.kind === 'nuc' ? r.p : -1;
+    if (t >= 0) r.pos = [atoms[t].x, atoms[t].y, atoms[t].z];
+    else { let x = 0, y = 0, z = 0; for (const i of r.atoms) { x += atoms[i].x; y += atoms[i].y; z += atoms[i].z; } const m = r.atoms.length; r.pos = [x / m, y / m, z / m]; }
+    if (!chains.includes(r.chain)) chains.push(r.chain);
+    r.chainIdx = chains.indexOf(r.chain);
+  }
+  const segs = []; let seg = null, prev = null;
+  res.forEach((r, i) => {
+    if (r.kind !== 'prot' && r.kind !== 'nuc') { seg = null; prev = null; return; }
+    const lim = r.kind === 'prot' ? 4.3 : 8.0;
+    if (seg && prev && prev.chain === r.chain && prev.kind === r.kind && dist3(prev.pos, r.pos) < lim) seg.push(i);
+    else { seg = [i]; segs.push(seg); }
+    prev = r;
+  });
+  const counts = {}, seen = {};
+  for (const r of res) if (r.kind === 'prot' || r.kind === 'nuc') counts[r.chain] = (counts[r.chain] || 0) + 1;
+  for (const r of res) { r.ss = r.kind === 'nuc' ? 'N' : 'C'; if (counts[r.chain]) { seen[r.chain] = (seen[r.chain] || 0) + 1; r.frac = counts[r.chain] > 1 ? (seen[r.chain] - 1) / (counts[r.chain] - 1) : 0; } else r.frac = 0; }
+  if (raw.ranges.length) {
+    for (const g of raw.ranges) for (const r of res) if (r.kind === 'prot' && r.chain === g.chain && r.resSeq >= g.start && r.resSeq <= g.end) r.ss = g.type;
+  } else estimateSS(res, segs);
+  return { name, atoms, res, resIndex, segs, radius: Math.max(rad, 5), chains, nPoly: Object.values(counts).reduce((s, c) => s + c, 0) };
+}
+const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+function estimateSS(res, segs) {
+  const L = [];
+  segs.forEach((seg, si) => {
+    if (res[seg[0]].kind !== 'prot') return;
+    const P = seg.map(i => res[i].pos), n = P.length, hm = new Array(n).fill(false);
+    for (let i = 0; i + 4 < n; i++) {
+      const d3 = dist3(P[i], P[i + 3]), d4 = dist3(P[i], P[i + 4]);
+      hm[i] = d3 > 4.4 && d3 < 5.9 && d4 > 5.3 && d4 < 6.9;
+    }
+    for (let i = 0; i < n; i++) if (hm[i] && ((i > 0 && hm[i - 1]) || hm[i + 1])) for (let k = i; k <= i + 4 && k < n; k++) res[seg[k]].ss = 'H';
+    seg.forEach((ri, k) => L.push({ ri, k, si, n }));
+  });
+  if (L.length > 5000) return;
+  const ext = L.map(e => {
+    const seg = segs[e.si]; if (e.k === 0 || e.k === e.n - 1) return false;
+    return dist3(res[seg[e.k - 1]].pos, res[seg[e.k + 1]].pos) > 6.0;
+  });
+  const isE = new Array(L.length).fill(false);
+  for (let a = 0; a < L.length; a++) {
+    if (!ext[a] || res[L[a].ri].ss === 'H') continue;
+    for (let b = 0; b < L.length; b++) {
+      if (a === b || res[L[b].ri].ss === 'H') continue;
+      if (L[a].si === L[b].si && Math.abs(L[a].k - L[b].k) < 4) continue;
+      if (dist3(res[L[a].ri].pos, res[L[b].ri].pos) < 5.5) { isE[a] = true; break; }
+    }
+  }
+  for (let a = 0; a < L.length; a++) {
+    const run = isE[a] && ((a > 0 && isE[a - 1] && L[a - 1].si === L[a].si) || (a + 1 < L.length && isE[a + 1] && L[a + 1].si === L[a].si));
+    if (run) res[L[a].ri].ss = 'E';
+  }
+}
+
+/* ---------------- demo: idealised four-helix bundle ---------------- */
+function nerf(a, b, c, bond, ang, tor) {
+  const bc = new THREE.Vector3().subVectors(c, b).normalize();
+  const nn = new THREE.Vector3().subVectors(b, a).cross(bc).normalize();
+  const m = new THREE.Vector3().crossVectors(nn, bc);
+  const x = -bond * Math.cos(ang), y = bond * Math.sin(ang) * Math.cos(tor), z = bond * Math.sin(ang) * Math.sin(tor);
+  return c.clone().addScaledVector(bc, x).addScaledVector(m, y).addScaledVector(nn, z);
+}
+function idealHelix(n) {
+  const V = THREE.Vector3, phi = -57 * DEG, psi = -47 * DEG, om = Math.PI;
+  const N = [new V(0, 0, 0)], CA = [new V(1.458, 0, 0)], C = [nerf(new V(0, 1, 0), N[0], CA[0], 1.525, 111 * DEG, -60 * DEG)], O = [];
+  for (let i = 0; i < n - 1; i++) {
+    N.push(nerf(N[i], CA[i], C[i], 1.329, 116.2 * DEG, psi));
+    CA.push(nerf(CA[i], C[i], N[i + 1], 1.458, 121.7 * DEG, om));
+    C.push(nerf(C[i], N[i + 1], CA[i + 1], 1.525, 111 * DEG, phi));
+    O.push(nerf(N[i + 1], CA[i], C[i], 1.231, 120.5 * DEG, Math.PI));
+  }
+  O.push(nerf(N[n - 1], CA[n - 1], C[n - 1], 1.231, 120.5 * DEG, psi + Math.PI));
+  const CB = CA.map((ca, i) => {
+    const b = ca.clone().sub(N[i]), c = C[i].clone().sub(ca), a = b.clone().cross(c);
+    return ca.clone().addScaledVector(a, -0.58273431).addScaledVector(b, 0.56802827).addScaledVector(c, -0.54067466);
+  });
+  return { N, CA, C, O, CB };
+}
+const AA3 = { L:'LEU', E:'GLU', K:'LYS', A:'ALA', G:'GLY', D:'ASP', S:'SER', I:'ILE', R:'ARG', Q:'GLN', P:'PRO' };
+function demoRaw() {
+  const V = THREE.Vector3, atoms = [], ranges = [];
+  const corners = [[-5, -5], [5, -5], [5, 5], [-5, 5]];
+  const seqs = ['SLEKLAKELEKLAKELEK', 'GEKLAKELEKLIKELEKL', 'SLEKLAKELERLAKELQK', 'GEKLAKELEKLAKELEKL'];
+  const loopSeq = 'GDPS';
+  let rs = 1; const helices = [];
+  for (let h = 0; h < 4; h++) {
+    const H = idealHelix(18);
+    const mean = (arr, a, b) => { const v = new V(); for (let i = a; i < b; i++) v.add(arr[i]); return v.multiplyScalar(1 / (b - a)); };
+    const st = mean(H.CA, 0, 4), en = mean(H.CA, 14, 18);
+    const dir = en.clone().sub(st).normalize(), mid = st.clone().add(en).multiplyScalar(0.5);
+    const up = new V(0, h % 2 ? -1 : 1, 0);
+    const q = new THREE.Quaternion().setFromUnitVectors(dir, up);
+    const spin = new THREE.Quaternion().setFromAxisAngle(up, h * 1.3);
+    const T = p => p.clone().sub(mid).applyQuaternion(q).applyQuaternion(spin).add(new V(corners[h][0], 0, corners[h][1]));
+    for (const k of ['N', 'CA', 'C', 'O', 'CB']) H[k] = H[k].map(T);
+    helices.push({ H, up, start: rs });
+    rs += 18 + (h < 3 ? 4 : 0);
+  }
+  const push = (name, resName, resSeq, p, el) => atoms.push({ name, resName, chain:'A', resSeq, ic:'', x:p.x, y:p.y, z:p.z, el, het:false });
+  helices.forEach((hx, h) => {
+    const { H } = hx;
+    for (let i = 0; i < 18; i++) {
+      const aa = AA3[seqs[h][i]] || 'ALA', r = hx.start + i;
+      push('N', aa, r, H.N[i], 'N'); push('CA', aa, r, H.CA[i], 'C'); push('C', aa, r, H.C[i], 'C'); push('O', aa, r, H.O[i], 'O');
+      if (aa !== 'GLY') push('CB', aa, r, H.CB[i], 'C');
+    }
+    ranges.push({ type:'H', chain:'A', start: hx.start + 1, end: hx.start + 16 });
+    if (h < 3) {
+      const nx = helices[h + 1];
+      const p0 = H.CA[17], p3 = nx.H.CA[0];
+      // pick a loop bulge so the 4 loop residues sit ~3.7 Å apart along the path
+      let bez = null, samples = null;
+      for (let ext = 2; ext <= 16; ext += 0.25) {
+        const p1 = p0.clone().addScaledVector(hx.up, ext), p2 = p3.clone().addScaledVector(nx.up, -ext);
+        const f = t => { const u = 1 - t; return p0.clone().multiplyScalar(u * u * u).addScaledVector(p1, 3 * u * u * t).addScaledVector(p2, 3 * u * t * t).addScaledVector(p3, t * t * t); };
+        const sm = [{ t: 0, s: 0, p: f(0) }];
+        for (let k = 1; k <= 200; k++) { const p = f(k / 200); sm.push({ t: k / 200, s: sm[k - 1].s + p.clone().sub(sm[k - 1].p).length(), p }); }
+        bez = f; samples = sm;
+        if (sm[200].s / 5 >= 3.7) break;
+      }
+      const Ltot = samples[200].s;
+      const atLen = s => { let k = 1; while (k < 200 && samples[k].s < s) k++; const a = samples[k - 1], b = samples[k]; return lerp(a.t, b.t, (s - a.s) / (b.s - a.s || 1)); };
+      for (let j = 0; j < 4; j++) {
+        const t = atLen(Ltot * (j + 1) / 5), ca = bez(t), tg = bez(Math.min(1, t + 0.02)).sub(bez(Math.max(0, t - 0.02))).normalize();
+        const out = new V(ca.x, 0, ca.z).normalize(); const side = new V().crossVectors(tg, out).normalize();
+        const aa = AA3[loopSeq[j]], r = hx.start + 18 + j;
+        push('N', aa, r, ca.clone().addScaledVector(tg, -1.0).addScaledVector(side, 0.55), 'N');
+        push('CA', aa, r, ca, 'C');
+        const c = ca.clone().addScaledVector(tg, 1.0).addScaledVector(side, 0.55);
+        push('C', aa, r, c, 'C');
+        push('O', aa, r, c.clone().addScaledVector(out, 1.23), 'O');
+      }
+    }
+  });
+  return { atoms, ranges };
+}
+
+/* ---------------- meshes ---------------- */
+const colCache = {};
+const C3 = hex => colCache[hex] || (colCache[hex] = new THREE.Color(hex));
+function resColor(st, ri, mode) {
+  const r = st.res[ri];
+  if (mode === 'chain' || mode === 'element') return C3(CHAIN_COLS[r.chainIdx % CHAIN_COLS.length]);
+  if (mode === 'rainbow') return new THREE.Color().setHSL(0.62 * (1 - (r.frac || 0)), 0.62, 0.62);
+  return C3(SS_COL[r.ss] || SS_COL.C);
+}
+function atomColor(st, a, mode) {
+  if (a.el !== 'C' || mode === 'element') return C3(ELEM[a.el] || '#E07BE0');
+  const r = st.res[a.ri];
+  if (r.kind === 'lig') return C3('#d5d9e0');
+  return resColor(st, a.ri, mode);
+}
+function buildCartoon(st, mode) {
+  const pos = [], col = [], idx = []; let base = 0;
+  const total = st.segs.reduce((s, g) => s + g.length, 0);
+  const K = total > 4000 ? 3 : total > 1500 ? 5 : 8, M = total > 4000 ? 6 : 10;
+  const V = THREE.Vector3, T = new V(), Nn = new V(), B = new V(), prevN = new V(0, 1, 0);
+  for (const seg of st.segs) {
+    const n = seg.length; if (n < 2) continue;
+    const P = seg.map(ri => new V(...st.res[ri].pos));
+    const curve = new THREE.CatmullRomCurve3(P, false, 'centripetal');
+    const O = P.map((p, i) => {
+      if (i === 0 || i === n - 1) return null;
+      const v = p.clone().sub(P[i - 1].clone().add(P[i + 1]).multiplyScalar(0.5));
+      return v.lengthSq() < 1e-6 ? null : v.normalize();
+    });
+    for (let i = 0; i < n; i++) if (!O[i]) {
+      let j = 1, f = null; while (!f && j < n) { f = O[i - j] || O[i + j]; j++; }
+      O[i] = f ? f.clone() : new V(0, 1, 0);
+    }
+    const ss = seg.map(ri => st.res[ri].ss);
+    for (let i = 1; i < n; i++) if (ss[i] === 'E' && ss[i - 1] === 'E' && O[i].dot(O[i - 1]) < 0) O[i].negate();
+    const O2 = O.map((v, i) => {
+      if (ss[i] !== 'E') return v;
+      const s = v.clone(); if (i > 0 && ss[i - 1] === 'E') s.add(O[i - 1]); if (i < n - 1 && ss[i + 1] === 'E') s.add(O[i + 1]);
+      return s.lengthSq() > 1e-6 ? s.normalize() : v;
+    });
+    const dims = ss.map(s => DIMS[s] || DIMS.C), cols = seg.map(ri => resColor(st, ri, mode));
+    const N = (n - 1) * K + 1;
+    for (let s = 0; s < N; s++) {
+      const u = s / (N - 1), f = u * (n - 1), i0 = Math.min(n - 1, Math.floor(f)), i1 = Math.min(n - 1, i0 + 1), fr = f - i0;
+      const p = curve.getPoint(u); curve.getTangent(u, T); T.normalize();
+      Nn.copy(O2[i0]).lerp(O2[i1], fr); Nn.addScaledVector(T, -Nn.dot(T));
+      if (Nn.lengthSq() < 1e-8) Nn.copy(prevN); Nn.normalize(); prevN.copy(Nn);
+      B.crossVectors(T, Nn).normalize();
+      const sm = smooth(fr), w = lerp(dims[i0][0], dims[i1][0], sm), h = lerp(dims[i0][1], dims[i1][1], sm);
+      const c = cols[fr < 0.5 ? i0 : i1];
+      for (let j = 0; j < M; j++) {
+        const a = j / M * Math.PI * 2, ca = Math.cos(a) * w, sa = Math.sin(a) * h;
+        pos.push(p.x + B.x * ca + Nn.x * sa, p.y + B.y * ca + Nn.y * sa, p.z + B.z * ca + Nn.z * sa);
+        col.push(c.r, c.g, c.b);
+      }
+      if (s < N - 1) for (let j = 0; j < M; j++) {
+        const a = base + s * M + j, b = base + s * M + (j + 1) % M;
+        idx.push(a, a + M, b, b, a + M, b + M);
+      }
+    }
+    base += N * M;
+  }
+  if (!pos.length) return null;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.04, side: THREE.DoubleSide });
+  return new THREE.Mesh(g, m);
+}
+function computeBonds(st, list) {
+  const out = []; if (list.length < 2) return out;
+  const cell = 2.4, grid = new Map();
+  const key = (x, y, z) => x + ',' + y + ',' + z;
+  list.forEach((ai, li) => {
+    const a = st.atoms[ai], k = key(Math.floor(a.x / cell), Math.floor(a.y / cell), Math.floor(a.z / cell));
+    let arr = grid.get(k); if (!arr) grid.set(k, arr = []); arr.push(li);
+  });
+  list.forEach((ai, li) => {
+    const a = st.atoms[ai]; if (METALS.has(a.el)) return;
+    const gx = Math.floor(a.x / cell), gy = Math.floor(a.y / cell), gz = Math.floor(a.z / cell), ra = COV[a.el] || 0.8;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+      const arr = grid.get(key(gx + dx, gy + dy, gz + dz)); if (!arr) continue;
+      for (const lj of arr) {
+        if (lj <= li) continue;
+        const b = st.atoms[list[lj]]; if (METALS.has(b.el)) continue;
+        const cut = ra + (COV[b.el] || 0.8) + 0.45;
+        const d2 = (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2;
+        if (d2 > 0.16 && d2 < cut * cut) out.push([ai, list[lj]]);
+      }
+    }
+  });
+  return out;
+}
+function buildAtomSet(st, list, mode) {
+  if (!list.length) return null;
+  const big = list.length > 15000;
+  const geo = new THREE.SphereGeometry(1, big ? 8 : 16, big ? 6 : 12);
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0.05 });
+  const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false;
+  list.forEach((ai, i) => mesh.setColorAt(i, atomColor(st, st.atoms[ai], mode)));
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  const pairs = computeBonds(st, list);
+  let bonds = null;
+  if (pairs.length) {
+    const cg = new THREE.CylinderGeometry(1, 1, 1, big ? 5 : 8, 1, true);
+    const cm = new THREE.MeshStandardMaterial({ color: 0xcfd4dc, roughness: 0.5, metalness: 0.02 });
+    bonds = new THREE.InstancedMesh(cg, cm, pairs.length); bonds.frustumCulled = false;
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0), d = new THREE.Vector3(), mid = new THREE.Vector3(), sc = new THREE.Vector3();
+    pairs.forEach(([i, j], k) => {
+      const a = st.atoms[i], b = st.atoms[j];
+      d.set(b.x - a.x, b.y - a.y, b.z - a.z); const len = d.length(); d.normalize();
+      q.setFromUnitVectors(Y, d); mid.set((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); sc.set(0.16, len, 0.16);
+      m.compose(mid, q, sc); bonds.setMatrixAt(k, m);
+    });
+    bonds.instanceMatrix.needsUpdate = true;
+  }
+  return { mesh, bonds, list, size: -1 };
+}
+function setAtomSize(set, st, size) {
+  if (!set || Math.abs(set.size - size) < 1e-4) return;
+  const m = new THREE.Matrix4();
+  set.list.forEach((ai, i) => {
+    const a = st.atoms[ai], s = (VDW[a.el] || 1.7) * size;
+    m.makeScale(s, s, s); m.setPosition(a.x, a.y, a.z); set.mesh.setMatrixAt(i, m);
+  });
+  set.mesh.instanceMatrix.needsUpdate = true; set.size = size;
+}
+function disposeMesh(M) {
+  if (!M) return;
+  scene.remove(M.group);
+  M.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+}
+function tagOwner(group, id) { group.traverse(m => { m.userData.oid = id; }); }
+
+/* ---------------- membrane: procedural lipid bilayer ---------------- */
+const MEM_HALF = 19, TAIL_LEN = 15;
+function hash01(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+function buildMembraneMeshes(o) {
+  disposeMesh(MESH.get(o.id));
+  const D = o.statics.radius || 110;
+  const n = Math.max(40, Math.round(Math.PI * D * D / 62));
+  const lip = [];
+  for (const s of [1, -1]) for (let i = 0; i < n; i++) {
+    const k = s > 0 ? i : i + 0.5, j = lip.length;
+    lip.push({ s, rho: D * Math.sqrt((k + 0.5) / n), phi: k * 2.399963, p1: hash01(j) * 6.283, p2: hash01(j + 9999) * 6.283, az: hash01(j + 4242) * 6.283, sp: (hash01(j + 777) - 0.5) * 0.25 });
+  }
+  const group = new THREE.Group();
+  const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 9), new THREE.MeshStandardMaterial({ color: o.statics.head || '#F0AC5F', roughness: 0.4, metalness: 0.05 }), lip.length);
+  const tails = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.8, 1, 6, 1, false), new THREE.MeshStandardMaterial({ color: o.statics.tail || '#ECE6CF', roughness: 0.55, metalness: 0.02 }), lip.length * 2);
+  for (const m of [heads, tails]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; group.add(m); }
+  scene.add(group); tagOwner(group, o.id);
+  MESH.set(o.id, { kind: 'membrane', group, heads, tails, lip, D, key: '' });
+}
+const _mP = new THREE.Vector3(), _mN = new THREE.Vector3(), _mT1 = new THREE.Vector3(), _mT2 = new THREE.Vector3(), _mD = new THREE.Vector3(), _mH = new THREE.Vector3(),
+  _mQ = new THREE.Quaternion(), _mS = new THREE.Vector3(), _mM = new THREE.Matrix4(), _mY = new THREE.Vector3(0, 1, 0), _mC = new THREE.Vector3(), _mA = new THREE.Vector3();
+function updateMembrane(o, M) {
+  const b = val(o, 'bend'), th = val(o, 'thermal'), pore = val(o, 'pore'), t = th > 0.001 ? S.time : 0;
+  const key = [b.toFixed(4), th.toFixed(4), pore.toFixed(2), t.toFixed(4)].join('|');
+  if (key === M.key) return; M.key = key;
+  const D = M.D, r = b > 1e-3 ? D / (2 * b) : 0;
+  const almax = r ? 2 * Math.asin(Math.min(1, D / (2 * r))) : 0, yshift = r ? r * (1 - Math.cos(almax)) / 2 : 0;
+  M.lip.forEach((L, i) => {
+    const cphi = Math.cos(L.phi), sphi = Math.sin(L.phi);
+    if (!r) { _mP.set(L.rho * cphi, 0, L.rho * sphi); _mN.set(0, 1, 0); }
+    else {
+      const al = 2 * Math.asin(Math.min(1, L.rho / (2 * r))), sa = Math.sin(al), ca = Math.cos(al);
+      _mP.set(r * sa * cphi, -r * (1 - ca) + yshift, r * sa * sphi); _mN.set(sa * cphi, ca, sa * sphi);
+    }
+    const k = pore > 0 ? clamp((L.rho - pore) / 5, 0, 1) : 1;
+    // tangent frame
+    _mA.set(Math.abs(_mN.z) < 0.9 ? 0 : 1, 0, Math.abs(_mN.z) < 0.9 ? 1 : 0);
+    _mT1.crossVectors(_mN, _mA).normalize(); _mT2.crossVectors(_mN, _mT1);
+    const ca = Math.cos(L.az), sa = Math.sin(L.az);
+    _mC.copy(_mT1).multiplyScalar(ca).addScaledVector(_mT2, sa);   // splay axis
+    const bob = th * 1.3 * Math.sin(t * 2.3 + L.p1);
+    _mH.copy(_mP).addScaledVector(_mN, L.s * (MEM_HALF + bob));
+    _mM.makeScale(4.2 * k, 4.2 * k, 4.2 * k); _mM.setPosition(_mH); M.heads.setMatrixAt(i, _mM);
+    const w1 = th * 0.32 * Math.sin(t * 1.9 + L.p2), w2 = th * 0.32 * Math.cos(t * 1.4 + L.p1);
+    for (let q = 0; q < 2; q++) {
+      const side = q ? -1 : 1;
+      _mD.copy(_mN).multiplyScalar(-L.s).addScaledVector(_mT1, w1 + side * (0.12 + L.sp)).addScaledVector(_mT2, w2).normalize();
+      _mS.copy(_mH).addScaledVector(_mN, -L.s * 3.2).addScaledVector(_mC, side * 1.6).addScaledVector(_mD, TAIL_LEN * k / 2);
+      _mQ.setFromUnitVectors(_mY, _mD);
+      _mM.compose(_mS, _mQ, _mA.set(1.15 * k + 1e-4, TAIL_LEN * k + 1e-4, 1.15 * k + 1e-4));
+      M.tails.setMatrixAt(i * 2 + q, _mM);
+    }
+  });
+  M.heads.instanceMatrix.needsUpdate = true; M.tails.instanceMatrix.needsUpdate = true;
+}
+
+/* ---------------- paper stacks (PDF pages & images) ---------------- */
+const PAPERS = new Map();  // paper obj id -> array of page canvases
+function buildPaperMeshes(o) {
+  disposeMesh(MESH.get(o.id));
+  const canvases = PAPERS.get(o.id); if (!canvases) return;
+  const group = new THREE.Group(), pages = [];
+  const aniso = renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 1;
+  canvases.forEach((cv, i) => {
+    const aspect = cv.width / cv.height;
+    const tex = new THREE.CanvasTexture(cv); tex.anisotropy = aniso;
+    const geo = new THREE.PlaneGeometry(aspect, 1);
+    const front = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide }));
+    const back = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xcfd3da, side: THREE.BackSide }));
+    const pivot = new THREE.Group(); pivot.add(front, back); group.add(pivot);
+    pages.push({ pivot, front, back, aspect, j: [hash01(i + 1) - 0.5, hash01(i + 51) - 0.5, hash01(i + 101) - 0.5] });
+  });
+  scene.add(group); tagOwner(group, o.id);
+  MESH.set(o.id, { kind: 'paper', group, pages });
+}
+function updatePaper(o, M) {
+  const n = M.pages.length, size = val(o, 'size'), spread = smooth(clamp(val(o, 'spread'), 0, 1)), fan = val(o, 'fan') * DEG;
+  const focus = val(o, 'focus') - 1, lift = val(o, 'lift'), layout = o.statics.layout || 'fan', op = val(o, 'opacity');
+  const cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
+  M.pages.forEach((P, i) => {
+    const asp = P.aspect;
+    // stacked pile
+    let sx = P.j[0] * 1.5 * size / 50, sy = P.j[1] * 1.0 * size / 50, sz = -i * 0.5 * size / 50, sr = P.j[2] * 5 * DEG;
+    // laid-out pose
+    let lx = 0, ly = 0, lz = -i * 0.25 * size / 50, lr = 0;
+    if (layout === 'fan') {
+      const a = n > 1 ? (i / (n - 1) - 0.5) * fan : 0, R0 = size * 1.5;
+      lx = Math.sin(a) * R0; ly = Math.cos(a) * R0 - R0; lr = -a;
+    } else if (layout === 'row') {
+      lx = (i - (n - 1) / 2) * size * asp * 1.1;
+    } else {
+      const c = i % cols, rr = Math.floor(i / cols);
+      lx = (c - (cols - 1) / 2) * size * asp * 1.08; ly = -(rr - (rows - 1) / 2) * size * 1.08;
+    }
+    let x = lerp(sx, lx, spread), y = lerp(sy, ly, spread), z = lerp(sz, lz, spread), rz = lerp(sr, lr, spread), sc = 1;
+    const w = smooth(clamp(lift * (1 - Math.abs(i - focus)), 0, 1));
+    if (w > 0) { x = lerp(x, 0, w); y = lerp(y, size * 0.08, w); z = lerp(z, size * 0.9, w); rz = lerp(rz, 0, w); sc = 1 + 0.45 * w; }
+    P.pivot.position.set(x, y, z); P.pivot.rotation.set(0, 0, rz); P.pivot.scale.set(size * sc, size * sc, 1);
+    setOpacity(P.front, op); setOpacity(P.back, op);
+  });
+}
+function placeholderPages(n) {
+  const out = [];
+  for (let p = 0; p < n; p++) {
+    const cv = document.createElement('canvas'); cv.width = 850; cv.height = 1100;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, 850, 1100);
+    c.fillStyle = '#1c1f26'; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    let y = 90;
+    if (p === 0) {
+      c.font = '600 38px "STIX Two Text", serif'; c.fillText('Drop a PDF to replace', 70, y); y += 48; c.fillText('these placeholder pages', 70, y); y += 34;
+      c.fillStyle = '#9aa1ad'; c.fillRect(70, y, 360, 10); y += 46;
+    } else { c.fillStyle = '#9aa1ad'; c.font = '20px "STIX Two Text", serif'; c.fillText('Placeholder page ' + (p + 1), 70, 70); y = 110; }
+    const colW = 335;
+    for (let col = 0; col < 2; col++) {
+      let yy = y;
+      for (let l = 0; l < 32; l++) {
+        if (p % 2 === 0 && col === 1 && l === 6) { // a little figure
+          c.strokeStyle = '#d6d9df'; c.lineWidth = 2; c.strokeRect(70 + colW + 40, yy, colW, 230);
+          const cols = ['#58C4DD', '#FC6255', '#83C167'];
+          cols.forEach((cc, k) => { c.strokeStyle = cc; c.lineWidth = 4; c.beginPath(); for (let x = 0; x <= 300; x += 10) { const v = Math.sin(x / 40 + k * 1.3 + p) * 40 * (1 - k * 0.2) + 115; x ? c.lineTo(70 + colW + 58 + x, yy + v) : c.moveTo(70 + colW + 58, yy + v); } c.stroke(); });
+          yy += 260; l += 10; continue;
+        }
+        const w = l % 7 === 6 ? colW * 0.55 : colW * (0.86 + hash01(p * 100 + l + col * 50) * 0.14);
+        c.fillStyle = '#c5cad3'; c.fillRect(70 + col * (colW + 40), yy, w, 9); yy += 24;
+        if (yy > 1020) break;
+      }
+    }
+    c.fillStyle = '#9aa1ad'; c.font = '18px Inter, sans-serif'; c.textAlign = 'center'; c.fillText(String(p + 1), 425, 1065);
+    out.push(cv);
+  }
+  return out;
+}
+function buildProteinMeshes(o) {
+  disposeMesh(MESH.get(o.id));
+  const st = STRUCTS.get(o.id); if (!st) return;
+  const mode = o.statics.color || 'ss';
+  const group = new THREE.Group();
+  const cartoon = buildCartoon(st, mode); if (cartoon) group.add(cartoon);
+  const polyList = [], hetList = [];
+  st.atoms.forEach((a, i) => {
+    const r = st.res[a.ri];
+    if (r.kind === 'water') { if (o.statics.water) hetList.push(i); }
+    else if (r.kind === 'lig') hetList.push(i);
+    else polyList.push(i);
+  });
+  const poly = buildAtomSet(st, polyList, mode), het = buildAtomSet(st, hetList, mode);
+  for (const s of [poly, het]) if (s) { group.add(s.mesh); if (s.bonds) group.add(s.bonds); }
+  scene.add(group);
+  MESH.set(o.id, { group, cartoon, poly, het });
+}
+function setOpacity(mesh, a) {
+  if (!mesh) return;
+  mesh.visible = a > 0.004;
+  const tr = a < 0.995, m = mesh.material;
+  if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; }
+  m.opacity = a;
+}
+
+/* ---------------- figure cut-outs: lift a figure off a page ---------------- */
+function cropCanvas(cv, r) {
+  const x0 = Math.round(r[0] * cv.width), y0 = Math.round(r[1] * cv.height), w = Math.max(4, Math.round((r[2] - r[0]) * cv.width)), hh = Math.max(4, Math.round((r[3] - r[1]) * cv.height));
+  const out = document.createElement('canvas'); out.width = w; out.height = hh;
+  out.getContext('2d').drawImage(cv, x0, y0, w, hh, 0, 0, w, hh);
+  return out;
+}
+function buildFigureMesh(o) {
+  disposeMesh(MESH.get(o.id));
+  const pages = PAPERS.get(o.statics.paperId); if (!pages) return false;
+  const cv = pages[o.statics.page]; if (!cv) return false;
+  const crop = cropCanvas(cv, o.statics.rect), aspect = crop.width / crop.height;
+  const tex = new THREE.CanvasTexture(crop);
+  if (renderer.capabilities.getMaxAnisotropy) tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(aspect, 1), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+  const group = new THREE.Group(); group.add(mesh); scene.add(group); tagOwner(group, o.id);
+  MESH.set(o.id, { kind: 'figure', group, mesh, aspect, thumb: crop });
+  return true;
+}
+const _fP = new THREE.Vector3(), _fQ = new THREE.Quaternion(), _fS = new THREE.Vector3(), _fP2 = new THREE.Vector3(), _fQ2 = new THREE.Quaternion(), _fT = new THREE.Vector3(), _fC = new THREE.Vector3();
+function updateFigure(o, M, dist) {
+  const lift = smooth(clamp(val(o, 'lift'), 0, 1)), op = val(o, 'opacity');
+  const PM = MESH.get(o.statics.paperId);
+  M.mesh.visible = false;
+  if (!PM || lift < 0.002 || op < 0.004) return;
+  const P = PM.pages[o.statics.page]; if (!P) return;
+  const r = o.statics.rect, cx = (r[0] + r[2]) / 2, cy = (r[1] + r[3]) / 2;
+  // where the figure sits on its page
+  P.pivot.matrixWorld.decompose(_fP, _fQ, _fS);
+  _fT.set((cx - 0.5) * P.aspect, 0.5 - cy, 0.02).applyMatrix4(P.pivot.matrixWorld);
+  const srcH = (r[3] - r[1]) * _fS.y;
+  // where it lands: on a target object, or front-and-centre
+  const cam = cameraObj();
+  _fC.set(val(cam, 'panX'), val(cam, 'panY'), val(cam, 'panZ'));
+  const toCam = camera.position.clone().sub(_fC).normalize();
+  const tgt = o.statics.target && MESH.get(o.statics.target);
+  if (tgt) _fP2.setFromMatrixPosition(tgt.group.matrixWorld);
+  else _fP2.copy(_fC).addScaledVector(toCam, dist * 0.3);
+  _fP2.x += val(o, 'x'); _fP2.y += val(o, 'y');
+  _fQ2.copy(camera.quaternion);
+  const h = lerp(srcH, val(o, 'size'), lift);
+  M.mesh.position.copy(_fT).lerp(_fP2, lift).addScaledVector(toCam, Math.sin(Math.PI * lift) * Math.max(srcH, val(o, 'size')) * 0.6);
+  M.mesh.quaternion.copy(_fQ).slerp(_fQ2, lift);
+  M.mesh.scale.set(h, h, 1);
+  setOpacity(M.mesh, op);
+}
+function addKey(o, k, t, v) {
+  t = clamp(Math.round(t * 30) / 30, 0, S.duration);
+  const tr = o.tracks[k] || (o.tracks[k] = []);
+  const i = tr.findIndex(q => Math.abs(q.t - t) < 0.021);
+  if (i >= 0) tr[i].v = v; else { tr.push({ t, v }); sortTrack(tr); }
+}
+const REVEAL_PROP = { protein: 'cartoon', membrane: 'opacity', paper: 'opacity', figure: 'opacity', junction: 'opacity' };
+function autoAnimateFigure(o) {
+  const t = S.time, land = t + 1.6;
+  if (land + 1 > S.duration) { S.duration = Math.ceil(land + 1); $('#dur').value = S.duration; updateTime(); }
+  o.tracks.lift = []; addKey(o, 'lift', t, 0); addKey(o, 'lift', land, 1);
+  const tgt = o.statics.target && getObj(o.statics.target), tst = tgt && STRUCTS.get(tgt.id), k = tgt && (tst && !tst.nPoly ? 'ligands' : REVEAL_PROP[tgt.type]);
+  if (tgt) {
+    o.tracks.opacity = []; addKey(o, 'opacity', land, 1); addKey(o, 'opacity', land + 0.8, 0);
+    if (k) { addKey(tgt, k, land, 0); addKey(tgt, k, land + 0.8, 1); }
+  }
+  S.demo = false; changed(true);
+  toast(tgt ? `The figure lifts off, lands on ${tgt.name}, then crossfades into it (${tgt.name}'s ${k} is keyed 0 → 1).` : 'The figure lifts off and lands front-and-centre. Pick a target to make it hand over to a 3D object.', 6000);
+}
+function makeFigure(paper, page, rect, extraStatics) {
+  const n = S.objects.filter(x => x.type === 'figure').length + 1;
+  const o = mkObj('figure', 'Figure ' + n, {}, Object.assign({ paperId: paper.id, page, rect, target: null }, extraStatics || {}));
+  if (!buildFigureMesh(o)) return null;
+  const i = S.objects.indexOf(paper); S.objects.splice(i + 1, 0, o);
+  return o;
+}
+/* crop dialog */
+let CROP = null;
+function openCrop(paper) {
+  const pages = PAPERS.get(paper.id); if (!pages) return;
+  const startPage = clamp(Math.round(val(paper, 'focus')) - 1, 0, pages.length - 1);
+  CROP = { paper, page: startPage, rect: null };
+  const sel = $('#cropPage'); sel.innerHTML = '';
+  pages.forEach((_, i) => sel.append(h('option', { value: i }, 'Page ' + (i + 1))));
+  sel.value = startPage; sel.onchange = () => { CROP.page = +sel.value; CROP.rect = null; drawCrop(); };
+  $('#crop').style.display = 'flex'; drawCrop();
+}
+function drawCrop() {
+  const cv = PAPERS.get(CROP.paper.id)[CROP.page], c = $('#cropCv'), maxH = window.innerHeight * 0.68, maxW = window.innerWidth * 0.6;
+  const sc = Math.min(maxH / cv.height, maxW / cv.width);
+  c.width = Math.round(cv.width * sc); c.height = Math.round(cv.height * sc);
+  const x = c.getContext('2d'); x.drawImage(cv, 0, 0, c.width, c.height);
+  const r = CROP.rect;
+  if (r) {
+    const [a, b, cc, d] = [r[0] * c.width, r[1] * c.height, r[2] * c.width, r[3] * c.height];
+    x.fillStyle = 'rgba(10,12,16,.55)';
+    x.fillRect(0, 0, c.width, b); x.fillRect(0, d, c.width, c.height - d); x.fillRect(0, b, a, d - b); x.fillRect(cc, b, c.width - cc, d - b);
+    x.strokeStyle = '#5CD0B3'; x.lineWidth = 2; x.setLineDash([6, 4]); x.strokeRect(a, b, cc - a, d - b); x.setLineDash([]);
+  }
+  $('#cropOk').disabled = !(r && (r[2] - r[0]) > 0.02 && (r[3] - r[1]) > 0.02);
+}
+(function cropEvents() {
+  const c = $('#cropCv'); let st = null;
+  const pt = e => [clamp(e.offsetX / c.width, 0, 1), clamp(e.offsetY / c.height, 0, 1)];
+  c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); st = pt(e); CROP.rect = [st[0], st[1], st[0], st[1]]; drawCrop(); });
+  c.addEventListener('pointermove', e => { if (!st) return; const q = pt(e); CROP.rect = [Math.min(st[0], q[0]), Math.min(st[1], q[1]), Math.max(st[0], q[0]), Math.max(st[1], q[1])]; drawCrop(); });
+  c.addEventListener('pointerup', () => { st = null; });
+  $('#cropCancel').onclick = () => { $('#crop').style.display = 'none'; CROP = null; };
+  $('#cropOk').onclick = () => {
+    if (!CROP || !CROP.rect) return;
+    const { paper, page, rect } = CROP; $('#crop').style.display = 'none'; CROP = null;
+    const o = makeFigure(paper, page, rect.slice());
+    if (!o) { toast('Couldn’t cut that figure out.'); return; }
+    autoAnimateFigure(o); select(o.id);
+  };
+})();
+
+/* ---------------- tight junction: two cell membranes + claudin strands ---------------- */
+const JL = 130;   // patch extent (Å) along y and z
+function buildJunctionMeshes(o) {
+  disposeMesh(MESH.get(o.id));
+  const lip = [], strands = [], sol = [];
+  const sp = 7.9, n = Math.floor(JL / sp);
+  let j = 0;
+  for (const c of [-1, 1]) for (const s of [1, -1]) for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+    j++;
+    lip.push({ c, s, y: -JL / 2 + (a + 0.5 + (hash01(j) - 0.5) * 0.5) * sp, z: -JL / 2 + (b + 0.5 + (hash01(j + 3131) - 0.5) * 0.5) * sp,
+      p1: hash01(j + 17) * 6.283, p2: hash01(j + 9999) * 6.283, az: hash01(j + 4242) * 6.283, sp: (hash01(j + 777) - 0.5) * 0.25 });
+  }
+  const rows = 5;
+  for (const c of [-1, 1]) for (let k = 0; k < rows; k++) for (let z = -JL / 2 + 3; z < JL / 2 - 2; z += 6.5) {
+    strands.push({ c, y0: -40 + k * 20, z, ph: k * 1.7 + (c > 0 ? 0.4 : 0), p: hash01(strands.length + 55) * 6.283 });
+  }
+  for (let i = 0; i < 80; i++) sol.push({ x: hash01(i + 901) - 0.5, z: (hash01(i + 1901) - 0.5) * JL * 0.9, ph: hash01(i + 2901) * JL });
+  const group = new THREE.Group();
+  const mk = (geo, color, count, rough = 0.45) => {
+    const m = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: 0.04 }), count);
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; group.add(m); return m;
+  };
+  const heads = mk(new THREE.SphereGeometry(1, 10, 8), o.statics.head || '#F0AC5F', lip.length, 0.4);
+  const tails = mk(new THREE.CylinderGeometry(1, 0.8, 1, 6, 1, false), o.statics.tail || '#ECE6CF', lip.length * 2, 0.55);
+  const cl = mk(new THREE.SphereGeometry(1, 14, 10), o.statics.strand || '#FC6255', strands.length, 0.35);
+  const so = mk(new THREE.SphereGeometry(1, 10, 8), o.statics.solute || '#5CD0B3', sol.length, 0.3);
+  scene.add(group); tagOwner(group, o.id);
+  MESH.set(o.id, { kind: 'junction', group, heads, tails, cl, so, lip, strands, sol, key: '' });
+}
+function updateJunction(o, M) {
+  const gap = val(o, 'gap'), st = clamp(val(o, 'strands'), 0, 1), fl = clamp(val(o, 'flow'), 0, 1), th = val(o, 'jiggle'), t = S.time;
+  const key = [gap, st, fl, th, t].map(v => v.toFixed(4)).join('|');
+  if (key === M.key) return; M.key = key;
+  const T1 = _mT1.set(0, 0, 1), T2 = _mT2.set(0, 1, 0);
+  M.lip.forEach((L, i) => {
+    const xm = L.c * (gap / 2 + 7 + MEM_HALF);
+    _mN.set(-L.c * L.s, 0, 0);                       // midplane → this leaflet's heads
+    _mP.set(xm, L.y, L.z);
+    const bob = th * 1.3 * Math.sin(t * 2.3 + L.p1);
+    _mH.copy(_mP).addScaledVector(_mN, MEM_HALF + bob);
+    _mM.makeScale(4.2, 4.2, 4.2); _mM.setPosition(_mH); M.heads.setMatrixAt(i, _mM);
+    const ca = Math.cos(L.az), sa = Math.sin(L.az);
+    _mC.copy(T1).multiplyScalar(ca).addScaledVector(T2, sa);
+    const w1 = th * 0.32 * Math.sin(t * 1.9 + L.p2), w2 = th * 0.32 * Math.cos(t * 1.4 + L.p1);
+    for (let q = 0; q < 2; q++) {
+      const side = q ? -1 : 1;
+      _mD.copy(_mN).negate().addScaledVector(T1, w1 + side * (0.12 + L.sp)).addScaledVector(T2, w2).normalize();
+      _mS.copy(_mH).addScaledVector(_mN, -3.2).addScaledVector(_mC, side * 1.6).addScaledVector(_mD, TAIL_LEN / 2);
+      _mQ.setFromUnitVectors(_mY, _mD);
+      _mM.compose(_mS, _mQ, _mA.set(1.15, TAIL_LEN, 1.15)); M.tails.setMatrixAt(i * 2 + q, _mM);
+    }
+  });
+  // claudin strands: beads that sit in the gap-facing leaflet and "kiss" across the gap
+  M.strands.forEach((B, i) => {
+    const y = B.y0 + 4 * Math.sin(B.z / 14 + B.ph) + th * 0.6 * Math.sin(t * 2 + B.p);
+    const k = smooth(clamp(st * 1.15 - (hash01(i + 333) * 0.15), 0, 1));
+    _mH.set(B.c * (gap / 2 + 3.6), y, B.z);
+    _mM.makeScale(4.2 * k + 1e-4, 3.1 * k + 1e-4, 3.1 * k + 1e-4); _mM.setPosition(_mH); M.cl.setMatrixAt(i, _mM);
+  });
+  // solutes leaking down through the paracellular gap when it opens
+  const open = clamp((gap - 5) / 7, 0, 1) * fl;
+  M.sol.forEach((P, i) => {
+    const y = JL / 2 - ((P.ph + t * 14) % JL);
+    const sc = open * clamp(Math.min(JL / 2 - y, y + JL / 2) / 10, 0, 1) * 2.3 + 1e-4;
+    _mH.set(P.x * Math.max(0, gap - 6), y, P.z);
+    _mM.makeScale(sc, sc, sc); _mM.setPosition(_mH); M.so.setMatrixAt(i, _mM);
+  });
+  for (const m of [M.heads, M.tails, M.cl, M.so]) m.instanceMatrix.needsUpdate = true;
+}
+function addJunction() {
+  const n = S.objects.filter(o => o.type === 'junction').length + 1;
+  const o = mkObj('junction', 'Tight junction' + (n > 1 ? ' ' + n : ''), { x: sideX(70) }, { head: '#F0AC5F', tail: '#ECE6CF', strand: '#FC6255', solute: '#5CD0B3' });
+  keys(o, 'opacity', [[S.time, 0], [Math.min(S.duration, S.time + 1), 1]]);
+  buildJunctionMeshes(o); S.objects.push(o); S.demo = false; select(o.id); changed(true);
+  toast('Added a tight junction. Animate Gap to open it, Strands to break the claudin seal, and Leak to show solutes slipping through.', 6500);
+}
+
+/* ---------------- LaTeX equations (MathJax → SVG) ---------------- */
+let mjP = null;
+function ensureMathJax() {
+  if (window.MathJax && window.MathJax.tex2svgPromise) return Promise.resolve(window.MathJax);
+  if (!mjP) mjP = (async () => {
+    window.MathJax = { tex: { packages: { '[+]': ['ams'] } }, svg: { fontCache: 'none' }, startup: { typeset: false } };
+    await loadScript('https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js');
+    await window.MathJax.startup.promise;
+    return window.MathJax;
+  })().catch(e => { mjP = null; throw e; });
+  return mjP;
+}
+const EQ = new Map();
+function eqEntry(tex, color) {
+  const key = color + '|' + tex;
+  let e = EQ.get(key); if (e) return e;
+  e = { ready: false, failed: false }; EQ.set(key, e);
+  ensureMathJax().then(MJ => MJ.tex2svgPromise(tex, { display: true })).then(node => {
+    const svg = node.querySelector('svg');
+    const wEx = parseFloat(svg.getAttribute('width')), hEx = parseFloat(svg.getAttribute('height'));
+    svg.setAttribute('width', (wEx * 40).toFixed(1)); svg.setAttribute('height', (hEx * 40).toFixed(1));
+    svg.setAttribute('color', color); svg.removeAttribute('style');
+    if (!svg.getAttribute('xmlns')) svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const str = new XMLSerializer().serializeToString(svg).replace(/currentColor/g, color);
+    const img = new Image();
+    img.onload = () => { e.img = img; e.wEx = wEx; e.hEx = hEx; e.ready = true; };
+    img.onerror = () => { e.failed = true; };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+  }).catch(err => { console.error(err); e.failed = true; if (!eqWarned) { eqWarned = true; toast('The equation renderer (MathJax) didn’t load, so equations show as plain TeX for now.', 6000); } });
+  return e;
+}
+let eqWarned = false;
+function drawEquation(c, o, s) {
+  const op = val(o, 'opacity'), w = val(o, 'write'); if (op < 0.003 || w < 0.003) return;
+  const tex = o.statics.tex || '', col = o.statics.color || '#FFFFFF';
+  const cx = val(o, 'x') * FW, cy = val(o, 'y') * FH, size = val(o, 'size') * s;
+  const e = eqEntry(tex, col);
+  c.globalAlpha = op;
+  if (e.ready) {
+    const pe = size * 0.45, ww = e.wEx * pe, hh = e.hEx * pe, x0 = cx - ww / 2, y0 = cy - hh / 2;
+    c.save(); c.beginPath(); c.rect(x0 - 4, y0 - 6, (ww + 8) * smooth(w), hh + 12); c.clip();
+    c.drawImage(e.img, x0, y0, ww, hh); c.restore();
+    if (w < 0.999) { const ex = x0 - 4 + (ww + 8) * smooth(w); c.fillStyle = col; c.globalAlpha = op * 0.35 * Math.sin(Math.PI * w); c.fillRect(ex - 1.5, y0 - 4, 3, hh + 8); c.globalAlpha = op; }
+    o._box = [x0 - 6, y0 - 6, ww + 12, hh + 12];
+  } else {
+    c.fillStyle = col; c.font = `italic ${size}px ${SERIF}`; c.textBaseline = 'middle';
+    const tw = drawReveal(c, e.failed ? tex : '…', cx, cy, 'center', w);
+    o._box = [cx - tw / 2 - 6, cy - size * 0.6, tw + 12, size * 1.2];
+  }
+}
+const EQ_PRESETS = [
+  ['Fick’s first law', 'J = -D\\,\\frac{\\partial C}{\\partial x}'],
+  ['Barrier flux (permeability)', 'J = P\\,S\\,\\left(C_{\\text{blood}} - C_{\\text{brain}}\\right)'],
+  ['Michaelis–Menten transport', 'v = \\frac{V_{\\max}\\,[S]}{K_m + [S]}'],
+  ['Nernst potential', 'E = \\frac{RT}{zF}\\ln\\frac{[X]_{\\text{out}}}{[X]_{\\text{in}}}'],
+  ['Stokes–Einstein', 'D = \\frac{k_B T}{6\\pi\\eta r}'] ];
+
+/* ---------------- molecule builder: SMILES → 3D ---------------- */
+const MOL_PRESETS = [
+  ['Glucose', 'OC[C@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1O'],
+  ['Caffeine', 'Cn1cnc2c1c(=O)n(C)c(=O)n2C'],
+  ['Dopamine', 'NCCc1ccc(O)c(O)c1'],
+  ['L-DOPA', 'N[C@@H](Cc1ccc(O)c(O)c1)C(=O)O'],
+  ['Ethanol', 'CCO'],
+  ['Aspirin', 'CC(=O)Oc1ccccc1C(=O)O'],
+  ['Cholesterol', 'CC(C)CCC[C@@H](C)[C@H]1CC[C@H]2[C@@H]3CC=C4C[C@@H](O)CC[C@]4(C)[C@H]3CC[C@]12C'],
+  ['Water', 'O'] ];
+const VALENCE = { B:[3], C:[4], N:[3,5], O:[2], P:[3,5], S:[2,4,6], F:[1], CL:[1], BR:[1], I:[1] };
+function parseSMILES(smi) {
+  const atoms = [], bonds = [], stack = [], ring = {};
+  let prev = -1, pend = null, i = 0;
+  const addBond = (a, b, o) => { bonds.push([a, b, o]); };
+  const dflt = (a, b) => (atoms[a].arom && atoms[b].arom) ? 1.5 : 1;
+  while (i < smi.length) {
+    const ch = smi[i];
+    if (ch === ' ' ) { i++; continue; }
+    if (ch === '(') { stack.push(prev); i++; continue; }
+    if (ch === ')') { prev = stack.pop(); i++; continue; }
+    if ('-=#$:/\\'.includes(ch)) { pend = ch === '=' ? 2 : ch === '#' ? 3 : ch === '$' ? 4 : ch === ':' ? 1.5 : 1; i++; continue; }
+    if (ch === '.') { prev = -1; i++; continue; }
+    if (/[0-9%]/.test(ch)) {
+      let num; if (ch === '%') { num = smi.slice(i + 1, i + 3); i += 3; } else { num = ch; i++; }
+      if (prev < 0) throw new Error('ring number before any atom');
+      if (ring[num]) { const r = ring[num]; addBond(r.a, prev, pend || r.o || dflt(r.a, prev)); delete ring[num]; }
+      else ring[num] = { a: prev, o: pend };
+      pend = null; continue;
+    }
+    let atom;
+    if (ch === '[') {
+      const j = smi.indexOf(']', i); if (j < 0) throw new Error('unclosed [');
+      const m = smi.slice(i + 1, j).match(/^(\d+)?([A-Z][a-z]?|[a-z][a-z]?|\*)(@*(?:TH\d|AL\d|SP\d|TB\d+|OH\d+)?)?(H\d*)?([+-]+\d*)?(?::\d+)?$/);
+      if (!m) throw new Error('can’t read [' + smi.slice(i + 1, j) + ']');
+      const sym = m[2], arom = sym === sym.toLowerCase() && sym !== '*';
+      atom = { el: sym === '*' ? 'C' : sym.toUpperCase(), arom, bracket: true, h: m[4] ? (m[4].length > 1 ? +m[4].slice(1) : 1) : 0 };
+      i = j + 1;
+    } else {
+      const two = smi.slice(i, i + 2);
+      let sym;
+      if (two === 'Cl' || two === 'Br') sym = two; else if (/[BCNOPSFIbcnops]/.test(ch)) sym = ch; else throw new Error('unexpected “' + ch + '”');
+      atom = { el: sym.toUpperCase(), arom: sym === sym.toLowerCase(), bracket: false };
+      i += sym.length;
+    }
+    const idx = atoms.push(atom) - 1;
+    if (prev >= 0) addBond(prev, idx, pend || dflt(prev, idx));
+    pend = null; prev = idx;
+  }
+  if (Object.keys(ring).length) throw new Error('a ring is never closed');
+  if (!atoms.length) throw new Error('no atoms');
+  // implicit hydrogens
+  const sum = atoms.map(() => 0);
+  for (const [a, b, o] of bonds) { sum[a] += o; sum[b] += o; }
+  const heavy = atoms.length;
+  for (let a = 0; a < heavy; a++) {
+    const at = atoms[a];
+    let nh = at.bracket ? at.h : 0;
+    if (!at.bracket) { const vs0 = VALENCE[at.el] || [sum[a]], vs = at.arom ? [vs0[0]] : vs0; const v = vs.find(x => x >= sum[a] - 0.01) ?? vs[vs.length - 1]; nh = Math.max(0, Math.floor(v - sum[a] + 0.01)); }
+    for (let k = 0; k < nh; k++) { const hi = atoms.push({ el: 'H', arom: false }) - 1; bonds.push([a, hi, 1]); }
+  }
+  return { atoms, bonds };
+}
+function embedMolecule(mol) {
+  const { atoms, bonds } = mol, n = atoms.length;
+  const nb = atoms.map(() => []);
+  const blen = (a, b, o) => { const r = (COV[atoms[a].el] || 0.77) + (COV[atoms[b].el] || 0.77); return r * (o === 2 ? 0.87 : o === 3 ? 0.78 : o === 1.5 ? 0.92 : 1); };
+  for (const [a, b, o] of bonds) { const L = blen(a, b, o); nb[a].push([b, L, o]); nb[b].push([a, L, o]); }
+  const ang = atoms.map((_, a) => {
+    const os = nb[a].map(x => x[2]);
+    if (os.includes(3) || os.filter(x => x === 2).length >= 2) return Math.PI;
+    if (os.includes(2) || os.includes(1.5) || (atoms[a].arom)) return 120 * DEG;
+    return 109.5 * DEG;
+  });
+  const cons = [], bonded = new Set();
+  const pk = (a, b) => a < b ? a * 10000 + b : b * 10000 + a;
+  for (const [a, b, o] of bonds) { cons.push([a, b, blen(a, b, o), 1]); bonded.add(pk(a, b)); }
+  for (let c = 0; c < n; c++) for (let x = 0; x < nb[c].length; x++) for (let y = x + 1; y < nb[c].length; y++) {
+    const [a, la] = nb[c][x], [b, lb] = nb[c][y];
+    cons.push([a, b, Math.sqrt(la * la + lb * lb - 2 * la * lb * Math.cos(ang[c])), 0.6]); bonded.add(pk(a, b));
+  }
+  // initial positions: breadth-first, seeded
+  const P = atoms.map(() => null); let seed = 1;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  for (let s = 0; s < n; s++) {
+    if (P[s]) continue;
+    P[s] = [s * 6, 0, 0]; const q = [s];
+    while (q.length) { const a = q.shift(); for (const [b, L] of nb[a]) if (!P[b]) { const v = [rnd(), rnd(), rnd()], m = Math.hypot(...v) || 1; P[b] = [P[a][0] + v[0] / m * L, P[a][1] + v[1] / m * L, P[a][2] + v[2] / m * L]; q.push(b); } }
+  }
+  const steps = n > 120 ? 900 : 1600;
+  for (let it = 0; it < steps; it++) {
+    const lr = 0.5 * (1 - it / steps) + 0.05;
+    for (const [a, b, d0, w] of cons) {
+      const A = P[a], B = P[b], dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], d = Math.hypot(dx, dy, dz) || 1e-3;
+      const f = (d - d0) / d * 0.5 * w * lr;
+      A[0] += dx * f; A[1] += dy * f; A[2] += dz * f; B[0] -= dx * f; B[1] -= dy * f; B[2] -= dz * f;
+    }
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {
+      if (bonded.has(pk(a, b))) continue;
+      const A = P[a], B = P[b], dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], d = Math.hypot(dx, dy, dz) || 1e-3;
+      const lim = (atoms[a].el === 'H' || atoms[b].el === 'H') ? 2.4 : 3.1;
+      if (d < lim) { const f = (d - lim) / d * 0.5 * 0.35 * lr; A[0] += dx * f; A[1] += dy * f; A[2] += dz * f; B[0] -= dx * f; B[1] -= dy * f; B[2] -= dz * f; }
+    }
+  }
+  return P;
+}
+function moleculeRaw(smiles) {
+  const mol = parseSMILES(smiles), P = embedMolecule(mol);
+  const counts = {};
+  return { keepH: true, ranges: [], atoms: mol.atoms.map((a, i) => { counts[a.el] = (counts[a.el] || 0) + 1; return { name: a.el + counts[a.el], resName: 'MOL', chain: 'M', resSeq: 1, ic: '', x: P[i][0], y: P[i][1], z: P[i][2], el: a.el, het: true }; }) };
+}
+function addMolecule(smiles, name) {
+  let st;
+  try { st = buildStruct(moleculeRaw(smiles), name); } catch (e) { toast('Couldn’t read that SMILES: ' + e.message, 6000); return null; }
+  if (!st) { toast('That SMILES has no atoms.'); return null; }
+  st.molName = name;
+  const others = S.objects.some(o => IS3D[o.type]);
+  const sc = others ? clamp(Math.round(refRadius() * 0.35 / st.radius * 2) / 2, 1, 12) : 1;
+  const o = mkObj('protein', name, { x: sideX(st.radius * sc), scale: sc, atomSize: 0.24, cartoon: 0 }, { color: 'element', source: { kind: 'smiles', smiles, name } });
+  STRUCTS.set(o.id, st); buildProteinMeshes(o);
+  keys(o, 'ligands', [[S.time, 0], [Math.min(S.duration, S.time + 0.8), 1]]);
+  S.objects.push(o); S.demo = false; select(o.id); changed(true);
+  toast(`Built ${name}: ${st.atoms.length} atoms` + (sc > 1 ? ` (shown ×${sc} so it’s visible next to the rest of the scene)` : '') + '. Geometry is idealised, not energy-minimised.', 6500);
+  return o;
+}
+
+/* ---------------- file store (IndexedDB) so papers survive a reload ---------------- */
+let idbP = null;
+function idb() {
+  if (!idbP) idbP = new Promise((res, rej) => {
+    let r; try { r = indexedDB.open('biostage', 1); } catch (e) { rej(e); return; }
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return idbP;
+}
+async function idbDo(mode, fn) {
+  try { const db = await idb(); return await new Promise((res, rej) => { const tx = db.transaction('files', mode), st = tx.objectStore('files'), rq = fn(st); tx.oncomplete = () => res(rq && rq.result); tx.onerror = () => rej(tx.error); }); }
+  catch (e) { console.warn('file store unavailable', e); return undefined; }
+}
+const idbPut = (k, v) => idbDo('readwrite', st => st.put(v, k));
+const idbGet = k => idbDo('readonly', st => st.get(k));
+const idbDel = k => idbDo('readwrite', st => st.delete(k));
+async function canvasesFromRecord(rec) {
+  if (rec.kind === 'pdf') return (await renderPdfPages(rec.data.slice(0))).canvases;
+  const url = URL.createObjectURL(rec.data);
+  try { return [await imageToCanvas(url)]; } finally { URL.revokeObjectURL(url); }
+}
+async function restorePaper(o, figs) {
+  const rec = await idbGet(o.id);
+  if (!rec) { S.objects = S.objects.filter(x => x !== o); changed(true); toast(`“${o.name}” couldn’t be restored, so drop the file in again.`, 6000); return; }
+  try {
+    PAPERS.set(o.id, await canvasesFromRecord(rec)); buildPaperMeshes(o);
+    for (const f of figs) if (buildFigureMesh(f)) { const i = S.objects.indexOf(o); S.objects.splice(i + 1, 0, f); }
+    changed(true);
+  } catch (e) { console.error(e); toast(`Couldn’t re-open “${o.name}”.`); }
+}
+
+/* ---------------- scene evaluation & render ---------------- */
+// The camera frames a fixed reference size (the first structure, else membrane, else paper),
+// so adding objects never silently re-frames an existing camera move.
+function refRadius() {
+  for (const o of S.objects) {
+    const t = o.type;
+    if (t === 'protein') { const st = STRUCTS.get(o.id); if (st) return st.radius * val(o, 'scale'); }
+    if (t === 'membrane') return (o.statics.radius || 110) * 0.8;
+    if (t === 'junction') return 72;
+    if (t === 'paper') return val(o, 'size') * 0.9;
+  }
+  return 20;
+}
+function camDist(cam) { return refRadius() / Math.sin(val(cam, 'fov') * DEG / 2) * 1.02 * val(cam, 'zoom'); }
+function applyScene() {
+  const cam = cameraObj();
+  const fov = val(cam, 'fov'), orbit = val(cam, 'orbit') * DEG, tilt = val(cam, 'tilt') * DEG;
+  const dist = camDist(cam);
+  const tx = val(cam, 'panX'), ty = val(cam, 'panY'), tz = val(cam, 'panZ');
+  camera.fov = fov;
+  camera.position.set(tx + dist * Math.cos(tilt) * Math.sin(orbit), ty + dist * Math.sin(tilt), tz + dist * Math.cos(tilt) * Math.cos(orbit));
+  camera.lookAt(tx, ty, tz);
+  camera.near = Math.max(0.5, dist * 0.02); camera.far = dist * 8 + 2000;
+  camera.updateProjectionMatrix();
+  scene.fog.color.set(S.bg); scene.fog.near = dist * 0.92; scene.fog.far = dist * 2.4;
+  for (const o of S.objects) try { applyObject(o); } catch (err) { reportError(err); }
+  camera.updateMatrixWorld(true);
+  for (const o of S.objects) if (o.type === 'figure') { const M = MESH.get(o.id); if (M) try { updateFigure(o, M, dist); } catch (err) { reportError(err); } }
+}
+function applyObject(o) {
+  {
+    if (o.type === 'junction') {
+      const M = MESH.get(o.id); if (!M) return;
+      M.group.position.set(val(o, 'x'), val(o, 'y'), 0);
+      M.group.rotation.set(val(o, 'tilt') * DEG, val(o, 'spin') * DEG, 0, 'YXZ');
+      updateJunction(o, M); const op = val(o, 'opacity');
+      for (const m of [M.heads, M.tails, M.cl, M.so]) setOpacity(m, op);
+      M.group.updateMatrixWorld(true); return;
+    }
+    if (o.type === 'membrane' || o.type === 'paper') {
+      const M = MESH.get(o.id); if (!M) return;
+      M.group.position.set(val(o, 'x'), val(o, 'y'), 0);
+      if (o.type === 'membrane') {
+        M.group.rotation.set(val(o, 'tilt') * DEG, val(o, 'spin') * DEG, 0, 'YXZ');
+        updateMembrane(o, M); const op = val(o, 'opacity'); setOpacity(M.heads, op); setOpacity(M.tails, op);
+      } else { M.group.rotation.set(0, val(o, 'spin') * DEG, 0); updatePaper(o, M); }
+      M.group.updateMatrixWorld(true);
+      return;
+    }
+    if (o.type !== 'protein') return;
+    const M = MESH.get(o.id), st = STRUCTS.get(o.id); if (!M) return;
+    M.group.position.set(val(o, 'x'), val(o, 'y'), 0);
+    M.group.rotation.y = val(o, 'spin') * DEG; const scl = val(o, 'scale'); M.group.scale.set(scl, scl, scl);
+    const at = val(o, 'atoms'), sz = val(o, 'atomSize'), sk = val(o, 'sticks'), lg = val(o, 'ligands');
+    setOpacity(M.cartoon, val(o, 'cartoon'));
+    if (M.poly) { setAtomSize(M.poly, st, sz); setOpacity(M.poly.mesh, at); setOpacity(M.poly.bonds, at * sk); }
+    if (M.het) { setAtomSize(M.het, st, sz); setOpacity(M.het.mesh, lg); setOpacity(M.het.bonds, lg * sk); }
+    M.group.updateMatrixWorld(true);
+  }
+}
+function render() {
+  applyScene();
+  renderer.setClearColor(S.bg, 1);
+  renderer.render(scene, camera);
+  drawOverlay();
+  if (EX) compositeFrame();
+}
+
+/* ---------------- Manim-style overlay ---------------- */
+const vtmp = new THREE.Vector3();
+function anchorPos(anchor) {
+  if (!anchor) return null;
+  const o = getObj(anchor.pid), st = STRUCTS.get(anchor.pid), M = MESH.get(anchor.pid);
+  if (!o || !M) return null;
+  if (anchor.whole || !st) {
+    if (o.type === 'paper' && val(o, 'lift') > 0.05) {   // follow the lifted page
+      const P = M.pages[clamp(Math.round(val(o, 'focus') - 1), 0, M.pages.length - 1)];
+      return vtmp.set(0, 0, 0).applyMatrix4(P.pivot.matrixWorld);
+    }
+    if (o.type === 'figure') { if (!M.mesh.visible) return null; return vtmp.copy(M.mesh.position); }
+    return vtmp.setFromMatrixPosition(M.group.matrixWorld);
+  }
+  const ri = st.resIndex[anchor.chain + '|' + anchor.resSeq]; if (ri === undefined) return null;
+  const p = st.res[ri].pos; vtmp.set(p[0], p[1], p[2]).applyMatrix4(M.group.matrixWorld);
+  return vtmp;
+}
+function anchorScreen(anchor) {
+  const v = anchorPos(anchor); if (!v) return null;
+  v.project(camera); if (v.z > 1) return null;
+  return { x: (v.x + 1) / 2 * FW, y: (1 - v.y) / 2 * FH };
+}
+const SERIF = '"STIX Two Text", "Times New Roman", serif';
+function drawReveal(c, str, x, y, align, p) {
+  const n = str.length; if (!n || p <= 0) return 0;
+  const shown = p * n, full = Math.floor(shown), frac = shown - full;
+  const totalW = c.measureText(str).width;
+  const sx = align === 'center' ? x - totalW / 2 : align === 'right' ? x - totalW : x;
+  c.textAlign = 'left';
+  if (full > 0) c.fillText(str.slice(0, Math.min(full, n)), sx, y);
+  if (full < n && frac > 0) {
+    const off = c.measureText(str.slice(0, full)).width, ch = str[full], ga = c.globalAlpha;
+    c.globalAlpha = ga * (1 - frac) * 0.9; c.strokeText(ch, sx + off, y);
+    c.globalAlpha = ga * frac; c.fillText(ch, sx + off, y);
+    c.globalAlpha = ga;
+  }
+  return totalW;
+}
+function drawOverlay() {
+  const c = octx;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, ov.width, ov.height);
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const H = FH, s = H / 1080;
+  for (const o of S.objects) {
+    o._box = null;
+    if (o.type === 'label') {
+      const op = val(o, 'opacity'), w = val(o, 'write'); if (op < 0.003 || w < 0.003) continue;
+      const col = o.statics.color || '#FFFFFF', a = anchorScreen(o.statics.anchor);
+      const dx = val(o, 'dx'), dy = val(o, 'dy');
+      const ax = a ? a.x : FW / 2, ay = a ? a.y : FH / 2;
+      const ex = ax + dx * H, ey = ay + dy * H;
+      c.globalAlpha = op; c.strokeStyle = col; c.fillStyle = col; c.lineCap = 'round';
+      const lp = clamp(w / 0.35, 0, 1), tp = clamp((w - 0.25) / 0.75, 0, 1);
+      if (a) {
+        c.beginPath(); c.arc(ax, ay, 5 * s * clamp(w * 5, 0, 1), 0, Math.PI * 2); c.fill();
+        c.lineWidth = 3 * s; c.beginPath(); c.moveTo(ax, ay); c.lineTo(lerp(ax, ex, lp), lerp(ay, ey, lp)); c.stroke();
+      }
+      const px = val(o, 'size') * s;
+      c.font = `${px}px ${SERIF}`; c.textBaseline = 'middle'; c.lineWidth = Math.max(1, 1.6 * s);
+      const right = dx < 0, tx = ex + (a ? (right ? -12 : 12) * s : 0);
+      const tw = drawReveal(c, o.statics.text || '', tx, ey, a ? (right ? 'right' : 'left') : 'center', tp);
+      const bx = a ? (right ? tx - tw : tx) : tx - tw / 2;
+      o._box = [bx - 6, ey - px * 0.6, tw + 12, px * 1.2];
+    } else if (o.type === 'arrow') {
+      const op = val(o, 'opacity'), p = val(o, 'draw'); if (op < 0.003 || p < 0.003) continue;
+      const col = o.statics.color || MANIM.Red, a = anchorScreen(o.statics.anchor);
+      const ang = val(o, 'angle') * DEG, len = val(o, 'length') * H, wd = val(o, 'width') * s;
+      const ux = Math.cos(ang), uy = -Math.sin(ang);
+      const ax = a ? a.x : FW / 2, ay = a ? a.y : FH / 2;
+      const tipx = ax + ux * 12 * s, tipy = ay + uy * 12 * s, tlx = tipx + ux * len, tly = tipy + uy * len;
+      const sp = clamp(p / 0.8, 0, 1), hp = clamp((p - 0.55) / 0.45, 0, 1);
+      const enx = lerp(tlx, tipx, sp), eny = lerp(tly, tipy, sp);
+      const hl = (16 + wd * 2.2) * hp;
+      c.globalAlpha = op; c.strokeStyle = col; c.fillStyle = col; c.lineCap = 'round'; c.lineWidth = wd;
+      c.beginPath(); c.moveTo(tlx, tly); c.lineTo(enx + ux * hl * 0.7, eny + uy * hl * 0.7); c.stroke();
+      if (hl > 0.5) {
+        const bx = enx + ux * hl, by = eny + uy * hl, nx = -uy, ny = ux;
+        c.beginPath(); c.moveTo(enx, eny); c.lineTo(bx + nx * hl * 0.5, by + ny * hl * 0.5); c.lineTo(bx - nx * hl * 0.5, by - ny * hl * 0.5); c.closePath(); c.fill();
+      }
+      const x0 = Math.min(tlx, tipx), y0 = Math.min(tly, tipy);
+      o._box = [x0 - 10, y0 - 10, Math.abs(tlx - tipx) + 20, Math.abs(tly - tipy) + 20];
+    } else if (o.type === 'equation') {
+      drawEquation(c, o, s);
+    } else if (o.type === 'title') {
+      const op = val(o, 'opacity'), w = val(o, 'write'); if (op < 0.003 || w < 0.003) continue;
+      const col = o.statics.color || '#FFFFFF', px = val(o, 'size') * s, y = val(o, 'y') * H;
+      c.globalAlpha = op; c.fillStyle = col; c.strokeStyle = col; c.textBaseline = 'middle'; c.lineWidth = Math.max(1, 2 * s);
+      c.font = `${px}px ${SERIF}`;
+      const sub = o.statics.sub || '';
+      const tw = drawReveal(c, o.statics.text || '', FW / 2, y, 'center', sub ? clamp(w / 0.7, 0, 1) : w);
+      if (sub) {
+        c.font = `italic ${px * 0.48}px ${SERIF}`; c.globalAlpha = op * 0.8;
+        drawReveal(c, sub, FW / 2, y + px * 0.85, 'center', clamp((w - 0.45) / 0.55, 0, 1));
+      }
+      o._box = [FW / 2 - tw / 2 - 8, y - px * 0.6, tw + 16, px * (sub ? 1.8 : 1.2)];
+    }
+  }
+  c.globalAlpha = 1;
+  if (hoverRes && !EX) {
+    const h = hoverRes; if (h) { c.strokeStyle = MANIM.Yellow; c.lineWidth = 2; c.beginPath(); c.arc(h.x, h.y, 9, 0, Math.PI * 2); c.stroke(); }
+  }
+}
+
+/* ---------------- picking ---------------- */
+let hoverRes = null;
+function pickResidue(mx, my) {
+  let best = null, bd = 14 * 14; const v = new THREE.Vector3();
+  for (const o of S.objects) {
+    if (o.type !== 'protein') continue;
+    const st = STRUCTS.get(o.id), M = MESH.get(o.id); if (!st || !M) continue;
+    if (val(o, 'cartoon') < 0.05 && val(o, 'atoms') < 0.05 && val(o, 'ligands') < 0.05) continue;
+    st.res.forEach((r, ri) => {
+      if (r.kind === 'water') return;
+      v.set(r.pos[0], r.pos[1], r.pos[2]).applyMatrix4(M.group.matrixWorld).project(camera);
+      if (v.z > 1 || v.z < -1) return;
+      const x = (v.x + 1) / 2 * FW, y = (1 - v.y) / 2 * FH, d = (x - mx) ** 2 + (y - my) ** 2;
+      if (d < bd || (best && Math.abs(d - bd) < 4 && v.z < best.z)) { bd = d; best = { o, ri, r, x, y, z: v.z }; }
+    });
+  }
+  return best;
+}
+const resLabel = r => r.resName.charAt(0) + r.resName.slice(1).toLowerCase() + ' ' + r.resSeq;
+
+/* ---------------- viewport interaction ---------------- */
+let drag = null;
+ov.addEventListener('pointerdown', e => {
+  ov.setPointerCapture(e.pointerId);
+  drag = { x: e.offsetX, y: e.offsetY, moved: false, lx: e.offsetX, ly: e.offsetY, pan: e.button === 2 || e.shiftKey };
+});
+ov.addEventListener('contextmenu', e => e.preventDefault());
+ov.addEventListener('pointermove', e => {
+  const x = e.offsetX, y = e.offsetY;
+  if (drag) {
+    if (!drag.moved && Math.hypot(x - drag.x, y - drag.y) > 3 && !S.pick) { drag.moved = true; ov.classList.add('drag'); hideTip(); }
+    if (drag.moved) {
+      const cam = cameraObj();
+      if (e.shiftKey || e.button === 2 || drag.pan) {
+        drag.pan = true;
+        const k = camDist(cam) * Math.tan(val(cam, 'fov') * DEG / 2) * 2 / FH, o = val(cam, 'orbit') * DEG;
+        const dx = -(x - drag.lx) * k, dy = (y - drag.ly) * k;
+        setProp(cam, 'panX', clamp(val(cam, 'panX') + dx * Math.cos(o), -400, 400));
+        setProp(cam, 'panZ', clamp(val(cam, 'panZ') - dx * Math.sin(o), -400, 400));
+        setProp(cam, 'panY', clamp(val(cam, 'panY') + dy, -400, 400));
+      } else {
+        setProp(cam, 'orbit', clamp(val(cam, 'orbit') - (x - drag.lx) * 0.35, -360, 360));
+        setProp(cam, 'tilt', clamp(val(cam, 'tilt') + (y - drag.ly) * 0.3, -85, 85));
+      }
+      drag.lx = x; drag.ly = y;
+    }
+    return;
+  }
+  const h = pickResidue(x, y); hoverRes = h;
+  if (h) showTip(x, y, `${resLabel(h.r)} · chain ${h.r.chain}` + (h.r.kind === 'lig' ? ' · ligand' : ''));
+  else hideTip();
+});
+ov.addEventListener('pointerleave', () => { if (!drag) { hoverRes = null; hideTip(); } });
+ov.addEventListener('pointerup', e => {
+  const d = drag; drag = null; ov.classList.remove('drag');
+  if (!d || d.moved) return;
+  const x = e.offsetX, y = e.offsetY;
+  if (S.pick) {
+    const h = pickResidue(x, y); const o = getObj(S.pick);
+    if (h && o) {
+      const fresh = !o.statics.anchor;
+      o.statics.anchor = { pid: h.o.id, chain: h.r.chain, resSeq: h.r.resSeq };
+      if (o.type === 'label' && (fresh || o.statics.autoText)) { const hst = STRUCTS.get(h.o.id); o.statics.text = h.r.kind === 'lig' && hst && hst.molName ? hst.molName : resLabel(h.r); o.statics.autoText = true; }
+      S.demo = false; endPick(); changed(true);
+    }
+    return;
+  }
+  for (const o of [...S.objects].reverse()) {
+    const b = o._box; if (b && x >= b[0] && x <= b[0] + b[2] && y >= b[1] && y <= b[1] + b[3]) { select(o.id); return; }
+  }
+  const h = pickResidue(x, y);
+  if (h) { select(h.o.id); return; }
+  const hitId = raycastObject(x, y);
+  select(hitId);
+});
+const raycaster = new THREE.Raycaster();
+function raycastObject(x, y) {
+  raycaster.setFromCamera({ x: x / FW * 2 - 1, y: -(y / FH) * 2 + 1 }, camera);
+  const targets = [];
+  for (const o of S.objects) {
+    if (!IS3D[o.type]) continue; const M = MESH.get(o.id); if (!M) continue;
+    M.group.traverse(m => { if (m.isMesh && m.visible) targets.push(m); });
+  }
+  const hits = raycaster.intersectObjects(targets, false);
+  return hits.length ? hits[0].object.userData.oid || null : null;
+}
+ov.addEventListener('wheel', e => {
+  e.preventDefault();
+  const cam = cameraObj();
+  setProp(cam, 'zoom', clamp(val(cam, 'zoom') * Math.exp(e.deltaY * 0.0012), 0.2, 3));
+}, { passive: false });
+function showTip(x, y, t) { const tip = $('#tip'), fr = $('#frame').getBoundingClientRect(), st = $('#stage').getBoundingClientRect(); tip.textContent = t; tip.style.display = 'block'; tip.style.left = (fr.left - st.left + x + 14) + 'px'; tip.style.top = (fr.top - st.top + y + 10) + 'px'; }
+function hideTip() { $('#tip').style.display = 'none'; }
+function startPick(o) {
+  S.pick = o.id; ov.classList.add('pick');
+  $('#pickText').textContent = `Click a residue to pin “${o.name}”`; $('#pickbar').style.display = 'flex';
+}
+function endPick() { S.pick = null; ov.classList.remove('pick'); $('#pickbar').style.display = 'none'; }
+$('#pickCancel').onclick = endPick;
+
+/* ---------------- outliner ---------------- */
+function objColor(o) { return (o.type === 'junction') ? (o.statics.strand || TYPE_COL.junction) : o.type === 'equation' ? (o.statics.color || TYPE_COL.equation) : o.type === 'membrane' ? (o.statics.head || TYPE_COL.membrane) : (o.type === 'label' || o.type === 'arrow' || o.type === 'title') ? (o.statics.color || TYPE_COL[o.type]) : TYPE_COL[o.type]; }
+function renderOutliner() {
+  const el = $('#outliner'); el.innerHTML = '';
+  for (const o of S.objects) {
+    const d = document.createElement('div'); d.className = 'item' + (o.id === S.sel ? ' sel' : '');
+    const chip = document.createElement('span'); chip.className = 'chip'; chip.style.background = objColor(o);
+    const nm = document.createElement('span'); nm.textContent = o.name;
+    const t = document.createElement('span'); t.className = 't'; t.textContent = TYPE_NAME[o.type];
+    d.append(chip, nm, t); d.onclick = () => select(o.id);
+    el.appendChild(d);
+  }
+}
+
+/* ---------------- inspector ---------------- */
+let INS = [];
+const fmt = (v, p) => { const d = p.step >= 1 ? 0 : p.step >= 0.1 ? 1 : p.step >= 0.01 ? 2 : 3; return (+v).toFixed(d); };
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in attrs || {}) { if (k === 'class') e.className = attrs[k]; else if (k.startsWith('on')) e[k] = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  for (const k of kids) e.append(k);
+  return e;
+}
+function field(label, ...kids) { return h('div', { class: 'field' }, h('label', {}, label), ...kids); }
+function swatches(o, key = 'color', pal = MANIM, after) {
+  const w = h('div', { class: 'sw' });
+  for (const [n, c] of Object.entries(pal)) {
+    const s = h('span', { title: n }); s.style.background = c;
+    if ((o.statics[key] || '') === c) s.className = 'on';
+    s.onclick = () => { o.statics[key] = c; S.demo = false; if (after) after(); changed(true); };
+    w.append(s);
+  }
+  return w;
+}
+function anchorField(o) {
+  const a = o.statics.anchor; let txt = 'Not pinned (floats in the frame)';
+  if (a) {
+    const tgt = getObj(a.pid), st = STRUCTS.get(a.pid);
+    if (a.whole || !st) txt = tgt ? `Whole object: ${tgt.name}` : 'Pinned object missing';
+    else { const ri = st.resIndex[a.chain + '|' + a.resSeq]; txt = ri !== undefined ? `${resLabel(st.res[ri])} · chain ${a.chain}` : 'Pinned residue missing'; }
+  }
+  const btns = h('div', { class: 'flex' }, h('button', { onclick: () => startPick(o) }, a ? 'Re-pin…' : 'Pin to residue…'));
+  if (a) btns.append(h('button', { onclick: () => { o.statics.anchor = null; changed(true); } }, 'Unpin'));
+  const objs = S.objects.filter(x => IS3D[x.type]);
+  const sel = h('select', { style: 'margin-top:6px;width:100%' }, h('option', { value: '' }, 'or pin to a whole object…'));
+  for (const x of objs) sel.append(h('option', { value: x.id }, `${x.name} (${TYPE_NAME[x.type].toLowerCase()})`));
+  sel.onchange = () => { if (!sel.value) return; o.statics.anchor = { pid: sel.value, whole: true }; S.demo = false; changed(true); };
+  return field('Pinned to', h('div', { class: 'muted', style: 'margin-bottom:6px' }, txt), btns, objs.length ? sel : '');
+}
+function renderInspector() {
+  const el = $('#inspector'); el.innerHTML = ''; INS = [];
+  const o = selObj();
+  if (!o) {
+    const sec = h('div', { class: 'sec' }, h('div', { class: 'ph', style: 'padding-left:0' }, 'Project'));
+    const bg = h('input', { type: 'color', value: S.bg }); bg.oninput = () => { S.bg = bg.value; changed(false); };
+    sec.append(field('Background', bg));
+    sec.append(h('p', { class: 'muted' }, 'Select something in the scene, the outliner or the timeline to edit it. Click ◇ next to a property to start animating it — after that, any change you make at a new time adds a key.'));
+    el.append(sec); return;
+  }
+  const top = h('div', { class: 'sec' }, h('div', { class: 'ph', style: 'padding-left:0' }, TYPE_NAME[o.type]));
+  const nm = h('input', { type: 'text', value: o.name }); nm.oninput = () => { o.name = nm.value; renderOutliner(); drawTimeline(); };
+  top.append(field('Name', nm));
+  if (o.type === 'protein') {
+    const st = STRUCTS.get(o.id);
+    if (st) top.append(h('div', { class: 'muted' }, st.nPoly ? `${st.nPoly} residues · ${st.atoms.length.toLocaleString()} atoms · chains ${st.chains.join(', ')}` : `${st.atoms.length} atoms · small molecule (use Ligands + Atom size)`));
+    const src = o.statics.source || {};
+    if (src.kind === 'smiles') {
+      const sm = h('input', { type: 'text', value: src.smiles, spellcheck: 'false' });
+      const go = () => {
+        let ns; try { ns = buildStruct(moleculeRaw(sm.value.trim()), o.name); } catch (e) { toast('Couldn’t read that SMILES: ' + e.message, 6000); return; }
+        ns.molName = o.name; STRUCTS.set(o.id, ns); o.statics.source = { kind: 'smiles', smiles: sm.value.trim(), name: o.name }; buildProteinMeshes(o); S.demo = false; changed(true);
+      };
+      sm.onkeydown = e => { if (e.key === 'Enter') go(); };
+      const ps = h('select', {}, h('option', { value: '' }, 'Presets…'));
+      for (const [n, v] of MOL_PRESETS) ps.append(h('option', { value: v }, n));
+      ps.onchange = () => { if (!ps.value) return; const nm = ps.options[ps.selectedIndex].text; sm.value = ps.value; o.name = nm; go(); };
+      top.append(field('SMILES', sm, h('div', { class: 'flex', style: 'margin-top:6px' }, h('button', { onclick: go }, 'Rebuild'), ps)));
+    }
+    const sel = h('select', {}); for (const [v, l] of [['ss', 'Secondary structure'], ['rainbow', 'Rainbow (N → C)'], ['chain', 'By chain'], ['element', 'By element']]) { const op = h('option', { value: v }, l); if ((o.statics.color || 'ss') === v) op.selected = true; sel.append(op); }
+    sel.onchange = () => { o.statics.color = sel.value; buildProteinMeshes(o); S.demo = false; changed(false); };
+    top.append(field('Colour', sel));
+    const wt = h('input', { type: 'checkbox' }); wt.checked = !!o.statics.water; wt.onchange = () => { o.statics.water = wt.checked; buildProteinMeshes(o); changed(false); };
+    top.append(h('label', { class: 'muted flex' }, wt, 'Show water'));
+  }
+  if (o.type === 'membrane') {
+    const Ml = MESH.get(o.id);
+    if (Ml) top.append(h('div', { class: 'muted' }, `${Ml.lip.length.toLocaleString()} lipids in two leaflets · ~38 Å thick`));
+    const sz = h('select', {}); for (const [n, v] of Object.entries(MEM_SIZES)) { const op = h('option', { value: v }, `${n} (${v * 2 / 10} nm across)`); if ((o.statics.radius || 110) === v) op.selected = true; sz.append(op); }
+    sz.onchange = () => { o.statics.radius = +sz.value; buildMembraneMeshes(o); S.demo = false; changed(true); };
+    top.append(field('Patch size', sz), field('Head groups', swatches(o, 'head', MANIM, () => buildMembraneMeshes(o))), field('Tails', swatches(o, 'tail', TAIL_COLS, () => buildMembraneMeshes(o))));
+    top.append(h('p', { class: 'muted' }, 'Curvature 0 is a flat sheet; 1 closes it into a vesicle. Open a pore to seat a channel or transporter in it.'));
+  }
+  if (o.type === 'paper') {
+    const n = (PAPERS.get(o.id) || []).length;
+    top.append(h('div', { class: 'muted' }, `${n} page${n === 1 ? '' : 's'}` + (o.statics.total > n ? ` (first ${n} of ${o.statics.total})` : '')));
+    const ly = h('select', {}); for (const [v, l] of [['fan', 'Fan (like a hand of cards)'], ['row', 'Row'], ['grid', 'Grid']]) { const op = h('option', { value: v }, l); if ((o.statics.layout || 'fan') === v) op.selected = true; ly.append(op); }
+    ly.onchange = () => { o.statics.layout = ly.value; S.demo = false; changed(false); };
+    top.append(field('Spread layout', ly));
+    top.append(field('Figures', h('button', { onclick: () => openCrop(o) }, 'Cut out a figure…')));
+    top.append(h('p', { class: 'muted' }, 'Spread 0 is a loose pile. Set Focus page and raise Lift to pull one page out towards the camera. The file is kept in this browser, so it comes back after a reload.'));
+  }
+  if (o.type === 'junction') {
+    const rb = () => buildJunctionMeshes(o);
+    top.append(h('p', { class: 'muted' }, 'Two neighbouring endothelial cell membranes sealed by claudin strands. Gap 0 is a tight seal. Open the gap and fade the strands to show breakdown, then raise Leak to show solutes slipping through.'));
+    top.append(field('Strands (claudins)', swatches(o, 'strand', MANIM, rb)), field('Solutes', swatches(o, 'solute', MANIM, rb)), field('Head groups', swatches(o, 'head', MANIM, rb)));
+  }
+  if (o.type === 'equation') {
+    const t = h('input', { type: 'text', value: o.statics.tex || '', spellcheck: 'false' }); t.oninput = () => { o.statics.tex = t.value; S.demo = false; changed(false); };
+    const ps = h('select', {}, h('option', { value: '' }, 'Presets…'));
+    for (const [n, v] of EQ_PRESETS) ps.append(h('option', { value: v }, n));
+    ps.onchange = () => { if (!ps.value) return; o.statics.tex = ps.value; t.value = ps.value; ps.value = ''; S.demo = false; changed(false); };
+    top.append(field('LaTeX', t, h('div', { style: 'margin-top:6px' }, ps)), field('Colour', swatches(o)));
+    top.append(h('p', { class: 'muted' }, 'Type LaTeX without the $ signs, e.g. \\frac{a}{b}. “Write” wipes it on from left to right.'));
+  }
+  if (o.type === 'figure') {
+    const Mf = MESH.get(o.id), src = getObj(o.statics.paperId);
+    if (Mf && Mf.thumb) { const im = h('img', { src: Mf.thumb.toDataURL('image/png'), style: 'max-width:100%;max-height:140px;border-radius:4px;display:block;margin:4px 0 8px;background:#fff' }); top.append(im); }
+    top.append(h('div', { class: 'muted' }, `From ${src ? src.name : 'a removed paper'}, page ${o.statics.page + 1}`));
+    const tg = h('select', {}, h('option', { value: '' }, 'Front and centre of the view'));
+    for (const x of S.objects) if ((x.type === 'protein' || x.type === 'membrane' || x.type === 'junction') && x.id !== o.id) { const op = h('option', { value: x.id }, `${x.name} (${TYPE_NAME[x.type].toLowerCase()})`); if (o.statics.target === x.id) op.selected = true; tg.append(op); }
+    tg.onchange = () => { o.statics.target = tg.value || null; S.demo = false; changed(false); };
+    top.append(field('Lands on', tg));
+    top.append(field('Quick animation', h('button', { onclick: () => autoAnimateFigure(o) }, 'Lift off from the playhead')));
+    top.append(h('p', { class: 'muted' }, 'With a target, the quick animation crossfades the figure into that object as it lands: the flat figure “becomes” the live 3D one.'));
+  }
+  if (o.type === 'label') {
+    const t = h('input', { type: 'text', value: o.statics.text || '' }); t.oninput = () => { o.statics.text = t.value; o.statics.autoText = false; S.demo = false; changed(false); };
+    top.append(field('Text', t), field('Colour', swatches(o)), anchorField(o));
+  }
+  if (o.type === 'arrow') top.append(field('Colour', swatches(o)), anchorField(o));
+  if (o.type === 'title') {
+    const t = h('input', { type: 'text', value: o.statics.text || '' }); t.oninput = () => { o.statics.text = t.value; S.demo = false; changed(false); };
+    const sb = h('input', { type: 'text', value: o.statics.sub || '', placeholder: 'optional' }); sb.oninput = () => { o.statics.sub = sb.value; S.demo = false; changed(false); };
+    top.append(field('Title', t), field('Subtitle', sb), field('Colour', swatches(o)));
+  }
+  if (o.type === 'camera') top.append(h('div', { class: 'muted' }, 'Drag in the viewport to orbit, Shift-drag or right-drag to pan, scroll to zoom. If the camera has keys, dragging edits the key at the playhead.'));
+  el.append(top);
+  const sec = h('div', { class: 'sec' }, h('div', { class: 'ph', style: 'padding-left:0' }, 'Animate'));
+  for (const p of SCHEMA[o.type]) {
+    const rg = h('input', { type: 'range', min: p.min, max: p.max, step: p.step });
+    const nu = h('input', { type: 'number', min: p.min, max: p.max, step: p.step });
+    const kb = h('button', { class: 'kb', title: 'Add / remove key at playhead' }, '◇');
+    rg.oninput = () => { setProp(o, p.k, +rg.value); nu.value = fmt(rg.value, p); };
+    nu.onchange = () => { const v = clamp(+nu.value, p.min, p.max); setProp(o, p.k, v); };
+    kb.onclick = () => toggleKey(o, p.k);
+    sec.append(h('div', { class: 'row' }, h('label', { title: p.l }, p.l + (p.u ? ` (${p.u})` : '')), rg, nu, kb));
+    INS.push({ p, rg, nu, kb, o });
+  }
+  el.append(sec);
+  if (o.type !== 'camera') {
+    const del = h('div', { class: 'sec' }, h('button', { onclick: () => deleteObj(o) }, 'Delete ' + TYPE_NAME[o.type].toLowerCase()));
+    el.append(del);
+  }
+  syncInspector();
+}
+function syncInspector() {
+  for (const r of INS) {
+    const v = val(r.o, r.p.k);
+    if (document.activeElement !== r.rg) r.rg.value = v;
+    if (document.activeElement !== r.nu) r.nu.value = fmt(v, r.p);
+    const has = r.o.tracks[r.p.k] && r.o.tracks[r.p.k].length, on = keyAt(r.o, r.p.k) >= 0;
+    r.kb.textContent = on ? '◆' : '◇'; r.kb.className = 'kb' + (on ? ' on' : has ? ' has' : '');
+  }
+}
+function deleteObj(o) {
+  if (o.type === 'paper') idbDel(o.id);
+  if (o.type === 'paper') for (const f of S.objects.filter(x => x.type === 'figure' && x.statics.paperId === o.id)) { disposeMesh(MESH.get(f.id)); MESH.delete(f.id); S.objects = S.objects.filter(x => x !== f); }
+  if (IS3D[o.type]) { disposeMesh(MESH.get(o.id)); MESH.delete(o.id); STRUCTS.delete(o.id); PAPERS.delete(o.id); for (const x of S.objects) if (x.statics.anchor && x.statics.anchor.pid === o.id) x.statics.anchor = null; }
+  S.objects = S.objects.filter(x => x !== o);
+  S.selKeys = []; if (S.pick === o.id) endPick();
+  S.demo = false; select(null); changed(true);
+}
+
+/* ---------------- adding things ---------------- */
+function firstProtein() { return S.objects.find(o => o.type === 'protein'); }
+function addOverlay(type) {
+  const n = S.objects.filter(o => o.type === type).length + 1;
+  const t0 = Math.round(S.time * 10) / 10;
+  let o;
+  if (type === 'label') { o = mkObj('label', 'Label ' + n, {}, { text: 'Label', color: MANIM.White, anchor: null, autoText: true }); keys(o, 'write', [[t0, 0], [t0 + 1, 1]]); }
+  if (type === 'arrow') { o = mkObj('arrow', 'Arrow ' + n, {}, { color: MANIM.Yellow, anchor: null }); keys(o, 'draw', [[t0, 0], [t0 + 0.8, 1]]); }
+  if (type === 'title') { o = mkObj('title', 'Title ' + n, {}, { text: 'Your title here', sub: '', color: MANIM.White }); keys(o, 'write', [[t0, 0], [t0 + 1.5, 1]]); }
+  if (type === 'equation') { o = mkObj('equation', 'Equation ' + n, {}, { tex: EQ_PRESETS[0][1], color: MANIM.White }); keys(o, 'write', [[t0, 0], [t0 + 1.5, 1]]); }
+  for (const k in o.tracks) for (const q of o.tracks[k]) q.t = Math.min(q.t, S.duration);
+  S.objects.push(o); S.demo = false;
+  select(o.id); changed(true);
+  if ((type === 'label' || type === 'arrow') && firstProtein()) startPick(o);
+}
+$('#aLabel').onclick = () => addOverlay('label');
+$('#aArrow').onclick = () => addOverlay('arrow');
+$('#aTitle').onclick = () => addOverlay('title');
+
+/* ---------------- loading structures ---------------- */
+function loadStructureText(text, fname) {
+  let raw;
+  try { raw = /_atom_site\./.test(text) ? parseCIF(text) : parsePDB(text); } catch (err) { console.error(err); raw = null; }
+  if (!raw || !raw.atoms.length) { toast('Couldn’t find any atoms in that file. Biostage reads PDB (.pdb) and mmCIF (.cif) text files.'); return; }
+  const name = (fname || 'Structure').replace(/\.(pdb|ent|cif|mmcif|txt)$/i, '');
+  const st = buildStruct(raw, name); if (!st) { toast('That file only had hydrogen atoms in it.'); return; }
+  if (S.demo) newScene();
+  const o = mkObj('protein', name, {}, { color: 'ss', source: { kind: 'text', text, name: fname } });
+  S.objects.splice(1, 0, o);
+  STRUCTS.set(o.id, st); buildProteinMeshes(o);
+  if (!S.objects.some(x => x.type === 'title')) {
+    const t = mkObj('title', 'Title', {}, { text: name.toUpperCase(), sub: '', color: MANIM.White });
+    keys(t, 'write', [[0.2, 0], [1.6, 1]]); keys(t, 'opacity', [[3, 1], [3.8, 0]]);
+    S.objects.push(t);
+  }
+  select(o.id); changed(true);
+  toast(`Loaded ${name}: ${st.nPoly} residues, ${st.atoms.length.toLocaleString()} atoms.`);
+}
+function clear3D() {
+  for (const o of S.objects) if (IS3D[o.type]) disposeMesh(MESH.get(o.id));
+  MESH.clear(); STRUCTS.clear(); PAPERS.clear();
+}
+function newScene() {
+  clear3D();
+  S.objects = [mkObj('camera', 'Camera')]; S.selKeys = []; S.sel = null; S.demo = false; S.time = 0; endPick();
+}
+function loadDemo() {
+  clear3D(); endPick();
+  S.duration = 24; S.time = 0; S.selKeys = [];
+  const cam = mkObj('camera', 'Camera');
+  keys(cam, 'orbit', [[0, -35], [12, 60], [16, 20], [20, 0]]);
+  keys(cam, 'tilt', [[0, 12], [10, 12], [12, 18], [16, 6]]);
+  keys(cam, 'zoom', [[0, 1.15], [6.5, 0.9], [10, 0.9], [12, 3.4], [15.5, 3.4], [17, 2.7]]);
+  keys(cam, 'panX', [[15.5, 0], [17, 175]]);
+  const p = mkObj('protein', 'Four-helix bundle', {}, { color: 'rainbow', source: { kind: 'demo' } });
+  keys(p, 'atoms', [[6.5, 0], [8, 1], [10, 1], [11, 0]]); keys(p, 'cartoon', [[6.5, 1], [8, 0.3], [10, 0.3], [11, 1]]);
+  const mem = mkObj('membrane', 'Membrane', { pore: 18, opacity: 0 }, { radius: 110, head: '#F0AC5F', tail: '#ECE6CF', source: { kind: 'procedural' } });
+  keys(mem, 'opacity', [[10, 0], [11.5, 1]]); keys(mem, 'bend', [[13, 0], [15, 0.35]]);
+  const pap = mkObj('paper', 'Placeholder paper', { x: 175, size: 60, focus: 2, opacity: 0 }, { layout: 'fan', source: { kind: 'placeholder' } });
+  keys(pap, 'opacity', [[15.5, 0], [16.3, 1]]); keys(pap, 'spread', [[16.5, 0], [18, 1]]); keys(pap, 'lift', [[18.5, 0], [19.6, 1]]);
+  const ttl = mkObj('title', 'Title', {}, { text: 'A four-helix bundle', sub: 'an idealised designed protein', color: MANIM.White });
+  keys(ttl, 'write', [[0.3, 0], [2, 1]]); keys(ttl, 'opacity', [[3.2, 1], [4, 0]]);
+  const lab = mkObj('label', 'Label 1', { dx: 0.16, dy: -0.12 }, { text: 'Leu 30', color: MANIM.Yellow, anchor: { pid: p.id, chain: 'A', resSeq: 30 }, autoText: true });
+  keys(lab, 'write', [[4.2, 0], [5.4, 1]]);
+  const arr = mkObj('arrow', 'Arrow 1', { angle: 200 }, { color: MANIM.Teal, anchor: { pid: p.id, chain: 'A', resSeq: 70 } });
+  keys(arr, 'draw', [[8.6, 0], [9.6, 1]]); keys(arr, 'opacity', [[10, 1], [10.6, 0]]);
+  keys(lab, 'opacity', [[10, 1], [10.6, 0]]);
+  const lab2 = mkObj('label', 'Label 2', { dx: 0.18, dy: -0.16, size: 36 }, { text: 'lipid bilayer', color: MANIM.Gold, anchor: { pid: mem.id, whole: true }, autoText: false });
+  keys(lab2, 'write', [[11.6, 0], [12.6, 1]]); keys(lab2, 'opacity', [[14.6, 1], [15.3, 0]]);
+  const lab3 = mkObj('label', 'Label 3', { dx: -0.22, dy: -0.3, size: 36 }, { text: 'the paper behind it', color: MANIM.Blue, anchor: { pid: pap.id, whole: true }, autoText: false });
+  keys(lab3, 'write', [[18, 0], [19, 1]]);
+  S.objects = [cam, p, mem, pap, ttl, lab, arr, lab2, lab3];
+  STRUCTS.set(p.id, buildStruct(demoRaw(), 'Four-helix bundle')); buildProteinMeshes(p);
+  buildMembraneMeshes(mem);
+  PAPERS.set(pap.id, placeholderPages(5)); buildPaperMeshes(pap);
+  keys(pap, 'lift', [[18.5, 0], [19.6, 1], [20.4, 1], [21, 0]]); keys(pap, 'focus', [[20.4, 2], [21, 1]]);
+  keys(lab3, 'opacity', [[20.2, 1], [20.6, 0]]);
+  const fig = makeFigure(pap, 0, [0.515, 0.32, 0.925, 0.545]);
+  if (fig) {
+    fig.props.size = 56;
+    keys(fig, 'lift', [[21.4, 0], [23, 1]]);
+    const lab4 = mkObj('label', 'Label 4', { dx: 0, dy: 0.4, size: 34 }, { text: 'a figure, lifted off the page', color: MANIM.Teal, anchor: null, autoText: false });
+    keys(lab4, 'write', [[22.8, 0], [23.8, 1]]);
+    S.objects.push(lab4);
+  }
+  S.demo = true; select(null); changed(true); updateTime();
+  $('#dur').value = S.duration;
+}
+function loadBarrierDemo() {
+  clear3D(); endPick();
+  S.duration = 16; S.time = 0; S.selKeys = [];
+  const cam = mkObj('camera', 'Camera');
+  keys(cam, 'orbit', [[0, -55], [16, 25]]); keys(cam, 'tilt', [[0, 20], [16, 6]]); keys(cam, 'zoom', [[0, 1.3], [8, 1.0], [16, 1.1]]);
+  const jn = mkObj('junction', 'Tight junction', {}, { head: '#F0AC5F', tail: '#ECE6CF', strand: '#FC6255', solute: '#5CD0B3' });
+  keys(jn, 'gap', [[4.5, 0], [8, 18]]); keys(jn, 'strands', [[4.5, 1], [8, 0.2]]); keys(jn, 'flow', [[7, 0], [9, 1]]);
+  const gl = mkObj('protein', 'Glucose', { scale: 1.6, atomSize: 0.24, cartoon: 0, y: 95, ligands: 0 }, { color: 'element', source: { kind: 'smiles', smiles: MOL_PRESETS[0][1], name: 'Glucose' } });
+  keys(gl, 'ligands', [[8.4, 0], [9.2, 1]]); keys(gl, 'y', [[9.2, 95], [14.5, -95]]); keys(gl, 'spin', [[8.4, 0], [16, 300]]);
+  const ttl = mkObj('title', 'Title', {}, { text: 'When the barrier loosens', sub: 'tight junctions between brain endothelial cells', color: MANIM.White });
+  keys(ttl, 'write', [[0.3, 0], [2.2, 1]]); keys(ttl, 'opacity', [[3.6, 1], [4.3, 0]]);
+  const l1 = mkObj('label', 'Label 1', { dx: 0.18, dy: -0.32, size: 36 }, { text: 'claudin strands seal the gap', color: MANIM.Red, anchor: { pid: jn.id, whole: true }, autoText: false });
+  keys(l1, 'write', [[2.4, 0], [3.4, 1]]); keys(l1, 'opacity', [[5.2, 1], [5.8, 0]]);
+  const l2 = mkObj('label', 'Label 2', { dx: 0.16, dy: -0.08, size: 34 }, { text: 'glucose', color: MANIM.Teal, anchor: { pid: gl.id, whole: true }, autoText: false });
+  keys(l2, 'write', [[9.3, 0], [10.1, 1]]); keys(l2, 'opacity', [[13.6, 1], [14.2, 0]]);
+  const eq = mkObj('equation', 'Equation 1', { y: 0.13, size: 54 }, { tex: EQ_PRESETS[1][1], color: MANIM.White });
+  keys(eq, 'write', [[11, 0], [12.8, 1]]);
+  S.objects = [cam, jn, gl, ttl, l1, l2, eq];
+  buildJunctionMeshes(jn);
+  const st = buildStruct(moleculeRaw(MOL_PRESETS[0][1]), 'Glucose'); st.molName = 'Glucose'; STRUCTS.set(gl.id, st); buildProteinMeshes(gl);
+  S.demo = true; select(null); changed(true); updateTime(); $('#dur').value = S.duration;
+}
+$('#bDemo').onchange = () => { const v = $('#bDemo').value; $('#bDemo').value = ''; if (v === 'bundle') loadDemo(); if (v === 'barrier') loadBarrierDemo(); };
+$('#bOpen').onclick = () => $('#fileIn').click();
+$('#fileIn').onchange = e => { const f = e.target.files[0]; if (f) readFile(f); e.target.value = ''; };
+function readFile(f) {
+  const name = f.name || 'file';
+  if (/\.pdf$/i.test(name) || f.type === 'application/pdf') { f.arrayBuffer().then(buf => loadPdf(buf, name)); return; }
+  if (/^image\//.test(f.type) || /\.(png|jpe?g|webp|gif)$/i.test(name)) { loadImageFile(f); return; }
+  const r = new FileReader(); r.onload = () => loadStructureText(r.result, name); r.readAsText(f);
+}
+function sideX(size) {
+  let ext = 0;
+  for (const o of S.objects) {
+    if (o.type === 'protein') { const st = STRUCTS.get(o.id); if (st) ext = Math.max(ext, st.radius + Math.abs(val(o, 'x'))); }
+    if (o.type === 'paper') ext = Math.max(ext, Math.abs(val(o, 'x')) + val(o, 'size'));
+  }
+  return ext ? Math.round(ext + size * 0.8 + 8) : 0;
+}
+function addPaper(name, canvases, extra) {
+  const size = 50;
+  const o = mkObj('paper', name, { x: sideX(size), focus: Math.min(2, canvases.length) }, Object.assign({ layout: canvases.length > 1 ? 'fan' : 'row' }, extra || {}));
+  PAPERS.set(o.id, canvases); buildPaperMeshes(o);
+  if (S.demo) S.demo = false;
+  S.objects.push(o); select(o.id); changed(true);
+  return o;
+}
+let pdfjsP = null;
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.appendChild(s); }); }
+function ensurePdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (!pdfjsP) pdfjsP = (async () => {
+    const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/';
+    // Loading the worker as a plain script lets pdf.js run on the main thread (no cross-origin Worker needed).
+    await loadScript(base + 'pdf.worker.min.js');
+    await loadScript(base + 'pdf.min.js');
+    const lib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+    lib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
+    return lib;
+  })().catch(e => { pdfjsP = null; throw e; });
+  return pdfjsP;
+}
+const MAX_PAGES = 12;
+async function renderPdfPages(buf, quiet) {
+  const lib = await ensurePdfJs();
+  const doc = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+  const n = Math.min(doc.numPages, MAX_PAGES), canvases = [];
+  for (let i = 1; i <= n; i++) {
+    if (!quiet) toast(`Rendering page ${i} of ${n}…`, 30000);
+    const page = await doc.getPage(i);
+    const vp0 = page.getViewport({ scale: 1 }), vp = page.getViewport({ scale: 1300 / Math.max(vp0.width, vp0.height) });
+    const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+    const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+    await page.render({ canvasContext: c, viewport: vp }).promise;
+    canvases.push(cv);
+  }
+  return { canvases, total: doc.numPages, n };
+}
+function imageToCanvas(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, 2048 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas'); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(img, 0, 0, cv.width, cv.height);
+      res(cv);
+    };
+    img.onerror = () => rej(new Error('image'));
+    img.src = url;
+  });
+}
+async function loadPdf(buf, name) {
+  try {
+    toast('Reading PDF…', 30000);
+    const keep = buf.slice(0);
+    const { canvases, total: totalPages, n } = await renderPdfPages(buf);
+    const doc = { numPages: totalPages };
+    const o = addPaper(name.replace(/\.pdf$/i, ''), canvases, { total: doc.numPages, source: { kind: 'pdf', name } });
+    idbPut(o.id, { kind: 'pdf', name, data: keep });
+    keys(o, 'spread', [[S.time, 0], [Math.min(S.duration, S.time + 1.5), 1]]); changed(true);
+    toast(`Added ${n} page${n === 1 ? '' : 's'}` + (doc.numPages > n ? ` (the first ${n} of ${doc.numPages})` : '') + '. It fans out from the playhead; set Focus page and Lift to pull one out.', 6000);
+  } catch (err) {
+    console.error(err);
+    toast('Couldn’t read that PDF' + (/load/i.test(err.message) ? ': the PDF reader didn’t load.' : '. It may be encrypted or damaged.'), 6000);
+  }
+}
+function loadImageFile(f) {
+  const url = URL.createObjectURL(f);
+  imageToCanvas(url).then(cv => {
+    URL.revokeObjectURL(url);
+    const o = addPaper((f.name || 'Figure').replace(/\.\w+$/, ''), [cv], { layout: 'row', source: { kind: 'image', name: f.name } });
+    idbPut(o.id, { kind: 'image', name: f.name, data: f });
+    toast('Added the image as a sheet in the scene.');
+  }).catch(() => toast('Couldn’t read that image.'));
+}
+function addMembrane() {
+  const n = S.objects.filter(o => o.type === 'membrane').length + 1;
+  const p = firstProtein(), st = p && STRUCTS.get(p.id);
+  const o = mkObj('membrane', 'Membrane' + (n > 1 ? ' ' + n : ''), { pore: st ? Math.min(45, Math.round(st.radius * 0.7 + 4)) : 0 }, { radius: 110, head: '#F0AC5F', tail: '#ECE6CF' });
+  keys(o, 'opacity', [[S.time, 0], [Math.min(S.duration, S.time + 1), 1]]);
+  buildMembraneMeshes(o); S.objects.push(o); S.demo = false; select(o.id); changed(true);
+  if (st) toast('Added a bilayer with a pore sized to your structure. Curvature bends it into a vesicle.', 5000);
+}
+$('#aMem').onclick = addMembrane;
+$('#aJn').onclick = addJunction;
+$('#aEq').onclick = () => addOverlay('equation');
+$('#aMol').onclick = () => { const o = addMolecule(MOL_PRESETS[0][1], MOL_PRESETS[0][0]); if (o) toast('Built glucose. Pick another preset or type any SMILES in the panel on the right.', 5000); };
+$('#bFetch').onclick = fetchPDB;
+$('#pdbId').addEventListener('keydown', e => { if (e.key === 'Enter') fetchPDB(); });
+async function fetchPDB() {
+  const id = $('#pdbId').value.trim().toUpperCase();
+  if (!/^[0-9][A-Z0-9]{3}$/.test(id)) { toast('A PDB ID is four characters, like 1GFL (green fluorescent protein) or 4HHB (haemoglobin).'); return; }
+  toast(`Fetching ${id} from RCSB…`, 20000);
+  for (const ext of ['pdb', 'cif']) {
+    try {
+      const r = await fetch(`https://files.rcsb.org/download/${id}.${ext}`);
+      if (r.ok) { const t = await r.text(); loadStructureText(t, `${id}.${ext}`); return; }
+    } catch (err) { /* blocked or offline */ }
+  }
+  toast(`Couldn’t reach RCSB from here. Inside the Claude preview, outside connections are blocked; once Biostage is on GitHub Pages this button will work. For now, download ${id} from rcsb.org (Download Files → PDB or mmCIF) and drop the file in.`, 9000);
+}
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; $('#drop').style.display = 'flex'; });
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('#drop').style.display = 'none'; } });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; $('#drop').style.display = 'none'; const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+
+/* ---------------- timeline ---------------- */
+const tlc = $('#tlc'), tctx = tlc.getContext('2d');
+const NAMEW = 200, RULER = 26, ROWH = 24;
+let TW = 600, TH = 200, tlScroll = 0, tlDrag = null;
+function sizeTimeline() {
+  const r = $('#tlwrap').getBoundingClientRect(); TW = Math.max(200, r.width); TH = Math.max(60, r.height);
+  tlc.width = Math.round(TW * DPR); tlc.height = Math.round(TH * DPR); drawTimeline();
+}
+function tlRows() {
+  const rows = [];
+  for (const o of S.objects) {
+    rows.push({ o });
+    if (o.expanded) for (const p of SCHEMA[o.type]) if (o.tracks[p.k] && o.tracks[p.k].length) rows.push({ o, k: p.k, l: p.l });
+  }
+  return rows;
+}
+const laneW = () => TW - NAMEW - 28;
+const xOf = t => NAMEW + 14 + t / S.duration * laneW();
+const tOf = x => clamp((x - NAMEW - 14) / laneW() * S.duration, 0, S.duration);
+function diamond(c, x, y, r) { c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + r, y); c.lineTo(x, y + r); c.lineTo(x - r, y); c.closePath(); }
+function hexA(hex, a) { const c = C3(hex); return `rgba(${c.r * 255 | 0},${c.g * 255 | 0},${c.b * 255 | 0},${a})`; }
+function drawTimeline() {
+  if (!tctx) return;
+  const c = tctx; c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.fillStyle = '#12151b'; c.fillRect(0, 0, TW, TH);
+  const rows = tlRows();
+  const maxScroll = Math.max(0, rows.length * ROWH - (TH - RULER) + 6); tlScroll = clamp(tlScroll, 0, maxScroll);
+  c.save(); c.beginPath(); c.rect(0, RULER, TW, TH - RULER); c.clip();
+  rows.forEach((row, i) => {
+    const y = RULER + i * ROWH - tlScroll, o = row.o, cy = y + ROWH / 2;
+    if (y > TH || y + ROWH < RULER) return;
+    const isSel = o.id === S.sel;
+    c.fillStyle = isSel ? (row.k ? '#1a202b' : '#1d2432') : (i % 2 ? '#13161c' : '#15181f');
+    c.fillRect(0, y, TW, ROWH);
+    c.fillStyle = '#14171e'; c.fillRect(0, y, NAMEW, ROWH);
+    if (isSel && !row.k) { c.fillStyle = '#58C4DD'; c.fillRect(0, y, 2, ROWH); }
+    c.textBaseline = 'middle'; c.font = '12px Inter, sans-serif';
+    const col = objColor(o);
+    if (!row.k) {
+      const keyed = SCHEMA[o.type].some(p => o.tracks[p.k] && o.tracks[p.k].length);
+      c.fillStyle = '#8a92a3'; if (keyed) c.fillText(o.expanded ? '▾' : '▸', 8, cy);
+      c.fillStyle = col; c.fillRect(22, cy - 5, 10, 10);
+      c.fillStyle = '#d8dce5'; c.fillText(o.name.length > 22 ? o.name.slice(0, 21) + '…' : o.name, 40, cy);
+      const all = []; for (const p of SCHEMA[o.type]) for (const q of (o.tracks[p.k] || [])) all.push(q.t);
+      if (all.length) {
+        const a = xOf(Math.min(...all)), b = xOf(Math.max(...all));
+        c.fillStyle = hexA(col, 0.16); c.fillRect(a - 3, y + 4, Math.max(6, b - a + 6), ROWH - 8);
+        c.strokeStyle = hexA(col, 0.4); c.lineWidth = 1; c.strokeRect(a - 3 + 0.5, y + 4.5, Math.max(6, b - a + 6) - 1, ROWH - 9);
+        const uniq = [...new Set(all.map(t => Math.round(t * 1000)))];
+        for (const u of uniq) { diamond(c, xOf(u / 1000), cy, 4); c.fillStyle = '#12151b'; c.fill(); c.strokeStyle = col; c.stroke(); }
+      }
+    } else {
+      c.fillStyle = '#8a92a3'; c.fillText(row.l, 40, cy);
+      c.strokeStyle = '#232835'; c.beginPath(); c.moveTo(NAMEW, cy + 0.5); c.lineTo(TW, cy + 0.5); c.stroke();
+      for (const q of o.tracks[row.k]) {
+        const sel = S.selKeys.includes(q);
+        diamond(c, xOf(q.t), cy, 6); c.fillStyle = sel ? '#ffffff' : '#F7D96F'; c.fill();
+        c.strokeStyle = sel ? '#F7D96F' : '#5e521f'; c.lineWidth = 1; c.stroke();
+      }
+    }
+  });
+  c.restore();
+  c.strokeStyle = '#252a36'; c.beginPath(); c.moveTo(NAMEW + 0.5, 0); c.lineTo(NAMEW + 0.5, TH); c.stroke();
+  // ruler
+  c.fillStyle = '#171b23'; c.fillRect(0, 0, TW, RULER); c.strokeStyle = '#252a36'; c.beginPath(); c.moveTo(0, RULER + 0.5); c.lineTo(TW, RULER + 0.5); c.stroke();
+  const pps = laneW() / S.duration; const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60];
+  const step = steps.find(s => s * pps >= 56) || 60;
+  c.font = '11px Inter, sans-serif'; c.textBaseline = 'middle'; c.textAlign = 'left';
+  for (let t = 0; t <= S.duration + 1e-6; t += step / 2) {
+    const x = Math.round(xOf(t)) + 0.5, major = Math.abs(t / step - Math.round(t / step)) < 1e-6;
+    c.strokeStyle = major ? '#3a4152' : '#262b37'; c.beginPath(); c.moveTo(x, major ? 12 : 18); c.lineTo(x, RULER); c.stroke();
+    if (major) { c.fillStyle = '#8a92a3'; c.fillText(fmtShort(t), x + 3, 9); }
+  }
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(xOf(S.duration), 0, TW - xOf(S.duration), TH);
+  c.fillStyle = '#8a92a3'; c.fillText('Time', 12, 13);
+  // playhead
+  const px = Math.round(xOf(S.time)) + 0.5;
+  c.strokeStyle = '#FC6255'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(px, RULER - 2); c.lineTo(px, TH); c.stroke();
+  c.fillStyle = '#FC6255'; c.beginPath(); c.moveTo(px - 6, 2); c.lineTo(px + 6, 2); c.lineTo(px + 6, 14); c.lineTo(px, 20); c.lineTo(px - 6, 14); c.closePath(); c.fill();
+  c.lineWidth = 1;
+}
+const fmtShort = t => (t >= 60 ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : (Math.round(t * 100) / 100) + 's');
+function fmtTime(t) { const m = Math.floor(t / 60), s = Math.floor(t % 60), f = Math.floor((t % 1) * 30); return `${m}:${String(s).padStart(2, '0')}.${String(f).padStart(2, '0')}`; }
+function updateTime() { $('#time').innerHTML = `<b>${fmtTime(S.time)}</b> / ${fmtTime(S.duration)}`; $('#play').textContent = S.playing ? '❚❚' : '▶'; }
+function tlHit(row, x) {
+  const o = row.o;
+  if (row.k) {
+    let best = null, bd = 7;
+    for (const q of o.tracks[row.k]) { const d = Math.abs(xOf(q.t) - x); if (d <= bd) { bd = d; best = q; } }
+    return best ? [best] : [];
+  }
+  let bt = null, bd = 6;
+  for (const p of SCHEMA[o.type]) for (const q of (o.tracks[p.k] || [])) { const d = Math.abs(xOf(q.t) - x); if (d <= bd) { bd = d; bt = q.t; } }
+  if (bt === null) return [];
+  const out = []; for (const p of SCHEMA[o.type]) for (const q of (o.tracks[p.k] || [])) if (Math.abs(q.t - bt) < 1e-3) out.push(q);
+  return out;
+}
+tlc.addEventListener('pointerdown', e => {
+  const x = e.offsetX, y = e.offsetY; tlc.setPointerCapture(e.pointerId);
+  if (y < RULER) { tlDrag = { scrub: true }; S.playing = false; setTime(tOf(x)); return; }
+  const rows = tlRows(), row = rows[Math.floor((y - RULER + tlScroll) / ROWH)];
+  if (!row) { S.selKeys = []; select(null); return; }
+  if (x < NAMEW) { if (!row.k && x < 20) row.o.expanded = !row.o.expanded; S.selKeys = []; select(row.o.id); return; }
+  const hit = tlHit(row, x);
+  if (hit.length) {
+    S.selKeys = (e.shiftKey || e.metaKey || e.ctrlKey) ? [...new Set([...S.selKeys, ...hit])] : (hit.every(q => S.selKeys.includes(q)) ? S.selKeys : hit);
+    tlDrag = { keys: S.selKeys.slice(), orig: S.selKeys.map(q => q.t), x0: x, moved: false };
+    if (S.sel !== row.o.id) select(row.o.id); else drawTimeline();
+    if (!row.k) setTime(hit[0].t);
+  } else {
+    S.selKeys = []; tlDrag = { scrub: true }; S.playing = false;
+    if (S.sel !== row.o.id) select(row.o.id);
+    setTime(tOf(x));
+  }
+});
+tlc.addEventListener('pointermove', e => {
+  if (!tlDrag) return;
+  const x = e.offsetX;
+  if (tlDrag.scrub) { setTime(tOf(x)); return; }
+  const dt = (x - tlDrag.x0) / laneW() * S.duration;
+  if (Math.abs(x - tlDrag.x0) > 2) tlDrag.moved = true;
+  const snap = e.shiftKey ? 1 / 30 : 0.1;
+  tlDrag.keys.forEach((q, i) => { q.t = clamp(Math.round((tlDrag.orig[i] + dt) / snap) * snap, 0, S.duration); });
+  drawTimeline(); syncInspector();
+});
+tlc.addEventListener('pointerup', () => {
+  const d = tlDrag; tlDrag = null;
+  if (d && d.keys && d.moved) {
+    for (const o of S.objects) for (const k in o.tracks) {
+      const tr = sortTrack(o.tracks[k]);
+      for (let i = tr.length - 1; i > 0; i--) if (Math.abs(tr[i].t - tr[i - 1].t) < 1e-3) tr.splice(S.selKeys.includes(tr[i]) ? i - 1 : i, 1);
+    }
+    S.demo = false; changed(false);
+  }
+});
+tlc.addEventListener('wheel', e => { e.preventDefault(); tlScroll += e.deltaY * 0.6; drawTimeline(); }, { passive: false });
+function deleteSelectedKeys() {
+  if (!S.selKeys.length) return false;
+  for (const o of S.objects) for (const k of Object.keys(o.tracks)) {
+    const tr = o.tracks[k], keep = tr.filter(q => !S.selKeys.includes(q));
+    if (keep.length !== tr.length) { if (!keep.length) { o.props[k] = val(o, k); delete o.tracks[k]; } else o.tracks[k] = keep; }
+  }
+  S.selKeys = []; S.demo = false; changed(true); return true;
+}
+
+/* ---------------- transport ---------------- */
+$('#play').onclick = togglePlay;
+function togglePlay() { if (EX) return; if (!S.playing && S.time >= S.duration - 1e-3) S.time = 0; S.playing = !S.playing; updateTime(); }
+$('#dur').onchange = () => { S.duration = clamp(+$('#dur').value || 12, 1, 600); $('#dur').value = S.duration; S.time = Math.min(S.time, S.duration); changed(false); updateTime(); };
+$('#aspect').onchange = () => { S.aspect = $('#aspect').value; layout(); changed(false); };
+document.addEventListener('keydown', e => {
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (/INPUT|SELECT|TEXTAREA/.test(tag) && document.activeElement.type !== 'range') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { if (deleteSelectedKeys()) e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); setTime(S.time + (e.shiftKey ? 1 : 1 / 30)); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); setTime(S.time - (e.shiftKey ? 1 : 1 / 30)); }
+  else if (e.key === 'Home') setTime(0);
+  else if (e.key === 'Escape') { endPick(); S.selKeys = []; drawTimeline(); }
+});
+
+/* ---------------- export ---------------- */
+let EX = null;
+function exportVideo() {
+  if (EX) return;
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { toast('This browser can’t record video from the page.'); return; }
+  const w = Math.round(FW * DPR) & ~1, hh = Math.round(FH * DPR) & ~1;
+  const comp = document.createElement('canvas'); comp.width = w; comp.height = hh;
+  const cctx = comp.getContext('2d');
+  const types = ['video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+  const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+  let rec;
+  try { rec = new MediaRecorder(comp.captureStream(30), mime ? { mimeType: mime, videoBitsPerSecond: 10e6 } : undefined); } catch (err) { toast('Couldn’t start the recorder in this browser.'); return; }
+  const chunks = [];
+  rec.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+  rec.onstop = () => {
+    const type = rec.mimeType || mime || 'video/webm';
+    const blob = new Blob(chunks, { type }); showVideo(blob, type.includes('mp4') ? 'mp4' : 'webm');
+  };
+  EX = { comp, cctx, rec, w, h: hh };
+  endPick(); hoverRes = null; S.selKeys = [];
+  S.time = 0; S.playing = true; rec.start(250); $('#rec').style.display = 'inline'; updateTime();
+  toast('Recording — the animation plays once in real time.', 2500);
+}
+function compositeFrame() {
+  const { cctx, w, h } = EX;
+  cctx.drawImage(glCanvas, 0, 0, w, h); cctx.drawImage(ov, 0, 0, w, h);
+}
+function finishExport() {
+  const e = EX; EX = null; S.playing = false; $('#rec').style.display = 'none'; updateTime();
+  setTimeout(() => e.rec.stop(), 120);
+}
+let lastVideo = null;
+function showVideo(blob, ext) {
+  if (lastVideo) URL.revokeObjectURL(lastVideo.url);
+  lastVideo = { blob, url: URL.createObjectURL(blob), ext };
+  $('#vid').src = lastVideo.url; $('#modal').style.display = 'flex';
+  $('#mNote').textContent = `${(blob.size / 1e6).toFixed(1)} MB · ${ext.toUpperCase()}`;
+}
+$('#mClose').onclick = () => { $('#modal').style.display = 'none'; $('#vid').pause(); };
+$('#mSave').onclick = async () => {
+  if (!lastVideo) return;
+  const filename = `biostage-${Date.now()}.${lastVideo.ext}`;
+  try {
+    if (window.claude && window.claude.use) {
+      const dl = await window.claude.use('downloads');
+      if (dl) { await dl.save({ filename, data: lastVideo.blob }); return; }
+    }
+  } catch (err) { /* declined or unavailable: fall through */ }
+  const a = document.createElement('a'); a.href = lastVideo.url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+};
+$('#bExport').onclick = exportVideo;
+
+/* ---------------- save / restore ---------------- */
+const SAVE_KEY = 'biostage.v1';
+function snapshot(withText) {
+  return JSON.stringify({ v: 1, duration: S.duration, aspect: S.aspect, bg: S.bg, nextId, demo: S.demo,
+    objects: S.objects.map(o => { const c = { ...o, statics: { ...o.statics } }; delete c._box; if (c.statics.source && !withText && c.statics.source.kind === 'text') c.statics.source = { ...c.statics.source, text: null }; return c; }) });
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, snapshot(true)); }
+  catch (e) { try { localStorage.setItem(SAVE_KEY, snapshot(false)); } catch (e2) { /* storage unavailable */ } }
+}
+function restore() {
+  let d; try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return false; }
+  if (!d || d.v !== 1 || !Array.isArray(d.objects) || !d.objects.some(o => o.type === 'camera')) return false;
+  if (d.demo) return false;   // an untouched demo always reloads as the latest demo
+  S.duration = d.duration || 12; S.aspect = d.aspect || '16:9'; S.bg = d.bg || '#101216'; nextId = d.nextId || 100; S.demo = !!d.demo;
+  S.objects = []; const pendingFigs = [], asyncPapers = [];
+  for (const o of d.objects) {
+    if (!SCHEMA[o.type]) continue;
+    o.props = o.props || {}; o.tracks = o.tracks || {}; o.statics = o.statics || {};
+    for (const p of SCHEMA[o.type]) if (typeof o.props[p.k] !== 'number' || !isFinite(o.props[p.k])) o.props[p.k] = p.def;
+    if (o.type === 'protein') {
+      const src = o.statics.source || {};
+      let st = null;
+      if (src.kind === 'demo') st = buildStruct(demoRaw(), o.name);
+      else if (src.kind === 'smiles') { try { st = buildStruct(moleculeRaw(src.smiles), o.name); st.molName = o.name; } catch (e) { st = null; } }
+      else if (src.text) { try { st = buildStruct(/_atom_site\./.test(src.text) ? parseCIF(src.text) : parsePDB(src.text), o.name); } catch (e) { st = null; } }
+      if (!st) continue;
+      STRUCTS.set(o.id, st); S.objects.push(o); buildProteinMeshes(o);
+    } else if (o.type === 'membrane') { S.objects.push(o); buildMembraneMeshes(o); }
+    else if (o.type === 'junction') { S.objects.push(o); buildJunctionMeshes(o); }
+    else if (o.type === 'figure') { pendingFigs.push(o); }
+    else if (o.type === 'paper') {
+      S.objects.push(o);
+      if (o.statics.source && o.statics.source.kind === 'placeholder') { PAPERS.set(o.id, placeholderPages(5)); buildPaperMeshes(o); }
+      else asyncPapers.push(o);
+    } else S.objects.push(o);
+  }
+  for (const f of pendingFigs) if (PAPERS.has(f.statics.paperId) && buildFigureMesh(f)) { const i = S.objects.findIndex(x => x.id === f.statics.paperId); S.objects.splice(i + 1, 0, f); }
+  const kept = new Set([...S.objects.map(x => x.id), ...pendingFigs.map(x => x.id)]);
+  for (const o of S.objects) if (o.type === 'figure' && o.statics.target && !kept.has(o.statics.target)) o.statics.target = null;
+  for (const o of S.objects) if (o.statics.anchor && !kept.has(o.statics.anchor.pid)) o.statics.anchor = null;
+  for (const pp of asyncPapers) restorePaper(pp, pendingFigs.filter(f => f.statics.paperId === pp.id));
+  return true;
+}
+
+/* ---------------- misc ---------------- */
+let toastTimer = null;
+function toast(msg, ms = 4000) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = 'none', ms); }
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+let lastErr = '';
+function reportError(err) {
+  const msg = (err && err.message) || String(err), stack = (err && err.stack || '').split('\n').slice(0, 3).join('\n');
+  if (msg === lastErr) return; lastErr = msg; console.error(err);
+  const el = $('#err'); el.textContent = 'Something went wrong while drawing the scene — please send me this message:\n' + msg + '\n' + stack; el.style.display = 'block';
+}
+window.addEventListener('error', e => reportError(e.error || e.message));
+window.addEventListener('unhandledrejection', e => reportError(e.reason));
+function frame(now) {
+  requestAnimationFrame(frame);
+  try { frameInner(now); } catch (err) { reportError(err); }
+}
+function frameInner(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (S.playing) {
+    S.time += dt;
+    if (S.time >= S.duration) {
+      if (EX) { S.time = S.duration; render(); finishExport(); return; }
+      S.time = 0;
+    }
+    syncInspector(); drawTimeline(); updateTime();
+  }
+  render();
+}
+
+initThree();
+if (!restore()) loadDemo();
+$('#aspect').value = S.aspect; $('#dur').value = S.duration;
+layout(); renderOutliner(); renderInspector(); updateTime();
+new ResizeObserver(() => layout()).observe($('#stage'));
+new ResizeObserver(() => sizeTimeline()).observe($('#tlwrap'));
+if (document.fonts) document.fonts.ready.then(() => drawTimeline());
+requestAnimationFrame(frame);
+window.BS = { S, setTime, loadDemo, loadBarrierDemo, MESH, PAPERS, STRUCTS, select, cameraObj, val, applyScene, parseSMILES, moleculeRaw, buildStruct, restore, idbGet };
+setTimeout(() => { const gl = renderer && renderer.getContext && renderer.getContext(); $('#diag').textContent = `3D: three.js r${THREE.REVISION} · ${gl && typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext ? 'WebGL 2' : 'WebGL 1'} · ${THREE_SRC}`; }, 0);
+}
+</script>
+<script>
+/* Load three.js with fallbacks, then start. Any failure is shown on screen. */
+(function () {
+  const srcs = [
+    ['cdnjs', 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'],
+    ['jsdelivr', 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'],
+    ['unpkg', 'https://unpkg.com/three@0.128.0/build/three.min.js']];
+  let i = 0;
+  function next() {
+    if (window.THREE) return go('preloaded');
+    if (i >= srcs.length) return fatal('The 3D engine (three.js) could not be downloaded from any CDN, so nothing can be drawn. Check your connection and reload.');
+    const [name, url] = srcs[i++];
+    const sc = document.createElement('script'); sc.src = url;
+    sc.onload = () => window.THREE ? go(name) : next(); sc.onerror = next;
+    document.head.appendChild(sc);
+  }
+  function go(name) { try { startApp(name); } catch (e) { fatal('Biostage hit an error while starting: ' + (e && e.message || e)); console.error(e); } }
+  window.bsFatal = fatal;
+  function fatal(msg) { const el = document.getElementById('err'); el.textContent = msg; el.style.display = 'block'; }
+  next();
+})();
+</script>
+</body>
+</html>
